@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab — Web Attack Academy</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <a class="brand" href="index.html" style="color:#fff;text-decoration:none">Web Attack <span>Academy</span></a>
+    <div class="progress"><a href="index.html" style="color:#7ee787;text-decoration:none">← All labs</a></div>
+  </div>
+  <div class="wrap">
+    <div id="meta">
+      <div class="lab-head">
+        <h1 id="lab-title">Loading…</h1>
+        <span class="pill unsolved" id="lab-pill">UNSOLVED</span>
+      </div>
+      <div class="solved-banner" id="solved-banner">✔ Lab solved! Nice work.</div>
+      <div class="card">
+        <h3>Objective</h3>
+        <div class="objective" id="lab-objective"></div>
+        <details>
+          <summary style="cursor:pointer;margin-top:12px;color:#0969da;font-weight:600">💡 Hint</summary>
+          <div class="hint-box" id="lab-hint"></div>
+        </details>
+      </div>
+      <div class="actions" style="margin-bottom:12px">
+        <button class="btn" id="btn-reload">↻ Reload lab</button>
+        <a class="btn gray" id="btn-open" href="#" target="_blank" rel="noopener">Open lab in new tab</a>
+        <span class="muted" id="lab-id-label"></span>
+      </div>
+    </div>
+
+    <iframe class="lab-frame" id="lab-frame" title="Lab" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
+
+    <div class="card" style="margin-top:16px">
+      <h3>Request console</h3>
+      <div class="console" id="console">→ Waiting for solve / lab messages…</div>
+    </div>
+  </div>
+  <script src="js/config.js"></script>
+  <script src="js/lab.js"></script>
+</body>
+</html>

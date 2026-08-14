@@ -1,0 +1,162 @@
+:root {
+  --bg: #f6f8fa;
+  --card: #ffffff;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #59636e;
+  --accent: #0969da;
+  --green: #1a7f37;
+  --red: #cf222e;
+  --shadow: 0 1px 3px rgba(27,31,36,0.12);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+.topbar {
+  background: #24292f;
+  color: #fff;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.topbar .brand { font-weight: 700; font-size: 18px; letter-spacing: .3px; }
+.topbar .brand span { color: #7ee787; }
+.topbar .progress { font-size: 13px; color: #d0d7de; }
+.topbar .progress strong { color: #fff; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 24px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+.topic-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.topic-head {
+  padding: 14px 16px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.topic-head h2 { margin: 0; font-size: 16px; }
+.topic-head .count { font-size: 12px; opacity: .9; }
+.lab-list { padding: 8px 0; }
+.lab-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  text-decoration: none;
+  color: var(--text);
+  border-bottom: 1px solid #eef1f4;
+  transition: background .12s;
+}
+.lab-item:hover { background: #f0f6ff; }
+.lab-item .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.lab-item .dot.solved { background: var(--green); }
+.lab-item .dot.unsolved { background: #d0d7de; border: 1px solid #afb8c1; }
+.lab-item .title { flex: 1; font-size: 14px; }
+.lab-item .diff { font-size: 11px; color: var(--muted); }
+.lab-item.solved-title .title { text-decoration: line-through; color: var(--muted); }
+
+.btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn.gray { background: #59636e; }
+.btn.red { background: var(--red); }
+
+/* Lab page */
+.lab-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.lab-head h1 { font-size: 20px; margin: 0; flex: 1; }
+.pill {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.pill.solved { background: var(--green); }
+.pill.unsolved { background: #59636e; }
+.solved-banner {
+  background: #dafbe1;
+  border: 1px solid #aceebb;
+  color: #1a7f37;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: none;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.card h3 { margin-top: 0; font-size: 15px; }
+.objective { font-size: 15px; line-height: 1.5; }
+.hint-box {
+  background: #fff8c5;
+  border: 1px solid #eae088;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.hint-box code, .objective code { background: #eff2f5; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+
+.lab-frame {
+  width: 100%;
+  height: 640px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.muted { color: var(--muted); font-size: 13px; }
+
+.console {
+  background: #0d1117;
+  color: #7ee787;
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+.console .req { color: #79c0ff; }
+.console .solved { color: #56d364; font-weight: 700; }
+
+@media (max-width: 700px) {
+  .lab-frame { height: 480px; }
+  .grid { grid-template-columns: 1fr; }
+}

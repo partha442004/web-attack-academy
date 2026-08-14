@@ -1,0 +1,14 @@
+{
+  "name": "web-attack-academy-worker",
+  "version": "1.0.0",
+  "description": "Deliberately vulnerable lab backend for Web Attack Academy (Cloudflare Worker).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node dev-server.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
