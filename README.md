@@ -1,6 +1,6 @@
 # Web Attack Academy
 
-A deliberately vulnerable practice platform for learning web attacks — 39 labs inspired by the PortSwigger Web Security Academy (SQLi, XSS, CSRF, clickjacking, path traversal, auth, and access control). Front-end runs on GitHub Pages; the vulnerable lab backend runs on a Cloudflare Worker.
+A deliberately vulnerable practice platform for learning web attacks — 72 labs inspired by the PortSwigger Web Security Academy (SQLi, XSS, CSRF, clickjacking, path traversal, auth, access control, SSRF, XXE, SSTI, command injection, NoSQL injection, request smuggling, insecure deserialization, file upload, business logic, race conditions, and weak crypto). Front-end runs on GitHub Pages; the vulnerable lab backend runs on a Cloudflare Worker.
 
 ## Architecture
 
@@ -18,7 +18,7 @@ worker/          Cloudflare Worker backend (the vulnerable apps)
   wrangler.toml  Worker deployment config
 ```
 
-## Labs (39)
+## Labs (72)
 
 | Category | Labs |
 |----------|------|
@@ -29,6 +29,17 @@ worker/          Cloudflare Worker backend (the vulnerable apps)
 | Path traversal | `pt-1..6` (simple, absolute, strip, double-encode, start-of-path, null byte) |
 | Authentication | `auth-1..6` (enumeration, IP brute-force, lockout, cookie, stay-logged-in, 2FA) |
 | Access control | `ac-1..6` (unprotected admin, hidden, IDOR uid, API, method-based, referer-based) |
+| SSRF | `ssrf-1..4` (basic, blacklist bypass, allowlist bypass, blind OAST) |
+| XXE | `xxe-1..4` (/etc/passwd, SVG, blind external DTD, SSRF) |
+| SSTI | `ssti-1..4` (basic, arithmetic/env, Java RCE, Python RCE) |
+| Command injection | `cmdi-1..3` (basic, blind log, filter bypass) |
+| NoSQL injection | `nosql-1..3` (login bypass, $regex query, $regex reset) |
+| Request smuggling | `smug-1..3` (CL.TE, TE.CL, obfuscated TE) |
+| Insecure deserialization | `deser-1..2` (object tampering, gadget chain) |
+| File upload | `upload-1..3` (no restrictions, content-type, ext blacklist) |
+| Business logic | `bl-1..3` (price tampering, negative quantity, coupon reuse) |
+| Race conditions | `race-1..2` (coupon overrun, multi-endpoint) |
+| Weak crypto | `crypto-1..2` (predictable reset token, forged JWT) |
 
 ## Local development
 

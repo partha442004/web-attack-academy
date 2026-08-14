@@ -7,6 +7,8 @@
 //  runs in a sandboxed isolate — safe to expose publicly.
 // ============================================================
 
+import { extraRoutes } from './extras.js';
+
 const APP = {
   name: 'Academy Shop',
   storeName: 'Web Attack Academy'
@@ -1042,6 +1044,8 @@ const routes = {
   'ac-6': (r, u) => access.refererBased(r, u)
 };
 
+Object.assign(routes, extraRoutes);
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -1052,7 +1056,7 @@ export default {
       'Access-Control-Allow-Origin': reqOrigin || '*',
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Cookie, X-Forwarded-For, Referer, stayLoggedIn, userId',
+      'Access-Control-Allow-Headers': 'Content-Type, Cookie, X-Forwarded-For, Referer, stayLoggedIn, userId, Authorization',
       'Access-Control-Expose-Headers': 'x-lab-solved, Set-Cookie',
       'Cache-Control': 'no-store',
       ...extra
