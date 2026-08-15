@@ -8,6 +8,7 @@
 // ============================================================
 
 import { extraRoutes } from './extras.js';
+import * as store from './store.js';
 
 const APP = {
   name: 'Academy Shop',
@@ -48,31 +49,39 @@ const SECRETS = {
   sqli4: 'administrator / aL4bZ0x'
 };
 
-// ---------------- session store (in-memory) ----------------
-// Map sessionId -> { solved: Set }
-const sessions = new Map();
-const bruteFail = { byIp: new Map(), byUser: new Map() };
+// ---------------- session store (durable, KV-backed) ----------------
+// KV is needed because Cloudflare isolates don't share memory: a session
+// created on one isolate must be visible to the next request (which may be
+// handled by a different isolate). Falls back to in-memory when no binding.
 
 function sessionIdFrom(req) {
   const c = (req.headers.get('cookie') || '').split(';').map(s => s.trim());
   const hit = c.find(k => k.startsWith('academy_session='));
   return hit ? hit.slice('academy_session='.length) : null;
 }
-function getSession(id) {
+
+function newSession() {
+  return { solved: [] };
+}
+
+async function getSession(id) {
   if (!id) return null;
-  let s = sessions.get(id);
-  if (!s) { s = { solved: new Set() }; sessions.set(id, s); }
+  let s = await store.read('session:' + id, null);
+  if (!s) { s = newSession(); await store.write('session:' + id, s); }
   return s;
 }
-function isSolved(req, labId) {
-  const s = getSession(sessionIdFrom(req));
-  return s ? s.solved.has(labId) : false;
+
+async function isSolved(req, labId) {
+  const s = await getSession(sessionIdFrom(req));
+  return s ? s.solved.includes(labId) : false;
 }
-function markSolved(req, labId) {
+
+async function markSolved(req, labId) {
   let sid = sessionIdFrom(req);
   if (!sid) { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); }
-  const s = getSession(sid);
-  s.solved.add(labId);
+  const s = await getSession(sid);
+  if (!s.solved.includes(labId)) s.solved.push(labId);
+  await store.write('session:' + sid, s);
   return sid;
 }
 
@@ -753,15 +762,18 @@ const auth = {
       const u = p.username || '', pw = p.password || '';
       // IP taken from X-Forwarded-For (spoofable) — trust boundary error
       const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
-      const fails = bruteFail.byIp.get(ip) || 0;
+      const ipFails = (await store.read('brute:ip', {})) || {};
+      const fails = ipFails[ip] || 0;
       if (fails >= 3) {
         return { body: html(`<h2>Blocked</h2><div class="err">Too many attempts from IP ${htmlenc(ip)}.</div><p class="muted">Hint: the app trusts the <code>X-Forwarded-For</code> header to identify you.</p>`), solved: false };
       }
       if (USERS[u] && USERS[u].password === pw) {
-        bruteFail.byIp.delete(ip);
+        delete ipFails[ip];
+        await store.write('brute:ip', ipFails);
         return { body: html(`<h2>Logged in</h2><div class="ok">Welcome, ${htmlenc(USERS[u].name)}.</div>`), solved: true };
       }
-      bruteFail.byIp.set(ip, fails + 1);
+      ipFails[ip] = fails + 1;
+      await store.write('brute:ip', ipFails);
       return { body: html(`<h2>Login</h2><div class="err">Invalid credentials. (${fails+1}/3)</div><a class="link" href="/lab/auth-2">Back</a>`), solved: false };
     }
     return { body: auth.loginPage('Login', '<div class="banner">3 failed attempts locks your IP. The lock is keyed on <code>X-Forwarded-For</code>.</div>') };
@@ -771,15 +783,17 @@ const auth = {
     if (req.method === 'POST') {
       const p = await bodyParams(req);
       const u = p.username || '', pw = p.password || '';
-      let fails = bruteFail.byUser.get(u) || 0;
+      const userFails = (await store.read('brute:user', {})) || {};
+      let fails = userFails[u] || 0;
       if (fails >= 5) {
         return { body: html(`<h2>Locked</h2><div class="err">Account ${htmlenc(u)} locked for 1 minute.</div><p class="muted">Hint: a <em>successful</em> login anywhere resets every lockout counter.</p>`), solved: false };
       }
       if (USERS[u] && USERS[u].password === pw) {
-        bruteFail.byUser.clear(); // broken: any success resets all counters
+        await store.write('brute:user', {}); // broken: any success resets all counters
         return { body: html(`<h2>Logged in</h2><div class="ok">Welcome, ${htmlenc(USERS[u].name)}.</div>`), solved: true };
       }
-      bruteFail.byUser.set(u, fails + 1);
+      userFails[u] = fails + 1;
+      await store.write('brute:user', userFails);
       return { body: html(`<h2>Login</h2><div class="err">Invalid credentials. (${fails+1}/5 for ${htmlenc(u)})</div>`), solved: false };
     }
     return { body: auth.loginPage('Login', '<div class="banner">5 failed attempts locks the account. Every successful login resets ALL lockouts.</div>') };
@@ -1048,6 +1062,7 @@ Object.assign(routes, extraRoutes);
 
 export default {
   async fetch(request, env) {
+    store.init(env);
     const url = new URL(request.url);
     const origin = url.origin;
     const reqOrigin = request.headers.get('Origin') || '';
@@ -1069,12 +1084,12 @@ export default {
     // ---- API: status check ----
     const st = url.pathname.match(/^\/api\/status\/([\w-]+)$/);
     if (st) {
-      return new Response(JSON.stringify({ labId: st[1], solved: isSolved(request, st[1]) }), { headers: cors({ 'Content-Type': 'application/json' }) });
+      return new Response(JSON.stringify({ labId: st[1], solved: await isSolved(request, st[1]) }), { headers: cors({ 'Content-Type': 'application/json' }) });
     }
     // ---- API: mark solved (client-side labs e.g. clickjacking/DOM) ----
     const mk = url.pathname.match(/^\/api\/mark\/([\w-]+)$/);
     if (mk) {
-      const sid = markSolved(request, mk[1]);
+      const sid = await markSolved(request, mk[1]);
       return new Response(JSON.stringify({ solved: true }), { headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': cookieSet(sid) }) });
     }
     // ---- API: bulk mark solved (progress import) ----
@@ -1084,9 +1099,10 @@ export default {
       if (!Array.isArray(ids)) ids = [];
       let sid = sessionIdFrom(request);
       if (!sid) { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); }
-      const s = getSession(sid);
-      ids.forEach(x => { if (typeof x === 'string') s.solved.add(x); });
-      return new Response(JSON.stringify({ marked: s.solved.size }), { headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': cookieSet(sid) }) });
+      const s = await getSession(sid);
+      ids.forEach(x => { if (typeof x === 'string' && !s.solved.includes(x)) s.solved.push(x); });
+      await store.write('session:' + sid, s);
+      return new Response(JSON.stringify({ marked: s.solved.length }), { headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': cookieSet(sid) }) });
     }
     // ---- API: request inspector (echo what the server actually received) ----
     if (url.pathname === '/api/reqinfo') {
@@ -1125,7 +1141,7 @@ export default {
         headers['Location'] = res.location;
       }
       if (res.solved) {
-        const sid = markSolved(request, id);
+        const sid = await markSolved(request, id);
         headers['x-lab-solved'] = 'true';
         headers['Set-Cookie'] = cookieSet(sid);
       }

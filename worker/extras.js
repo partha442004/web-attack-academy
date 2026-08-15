@@ -1,3 +1,5 @@
+import * as store from './store.js';
+
 // ---------- Extra lab categories (added to round out coverage) ----------
 // SSRF, XXE, SSTI, command injection, NoSQL injection, HTTP request smuggling,
 // insecure deserialization, file upload, business logic, race conditions, weak crypto.
@@ -8,13 +10,8 @@ const ADMIN_HOSTS = ['localhost', '127.0.0.1', '127.1', '2130706433', '0x7f00000
 const FAKE_PASSWD = 'root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nadmin:x:1000:1000:admin:/home/admin:/bin/bash';
 const FAKE_ADMIN = '<h2>Internal admin panel</h2><p>You reached an internal-only admin page via SSRF. User: administrator (active).</p>';
 
-// in-memory stores for blind/OAST & race emulation
-const oastLog = [];          // { when, host, lab }
-const couponUse = new Map(); // coupon -> last redeem timestamp
-const raceEmailTs = new Map();   // key -> ts
-const raceResetTs = new Map();
-const redeemed = new Map();  // coupon -> {ts, count}
-const cmdLog = [];
+// state for blind/OAST & race emulation is stored durably (KV) via store.js —
+// isolates don't share memory, so logs/counters must be visible across requests
 
 function page(body, title = 'Academy') {
   return `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
@@ -193,13 +190,18 @@ const ssrf = {
   // blind: no reflection, check the OAST request log
   async blind(req, url, ctx) {
     if (ctx === '/log') {
-      const rows = oastLog.filter(l => l.lab === 'ssrf-4').map(l => `<li><span class="mono">${l.when}</span> → ${h(l.host)}</li>`).join('');
-      const solved = oastLog.some(l => l.lab === 'ssrf-4' && !isInternal(l.host));
+      const log = (await store.read('oast:log', [])) || [];
+      const rows = log.filter(l => l.lab === 'ssrf-4').map(l => `<li><span class="mono">${l.when}</span> → ${h(l.host)}</li>`).join('');
+      const solved = log.some(l => l.lab === 'ssrf-4' && !isInternal(l.host));
       return { body: page(`<div class="card"><h3>Collaborator / OAST request log</h3>${rows ? '<ul>' + rows + '</ul>' : '<p class="muted">No out-of-band requests received yet.</p>'}${solved ? ok('External callback detected — the server made a request to your host.') : ''}</div>`), solved };
     }
     const stockApi = url.searchParams.get('stockApi') || '';
     const host = (() => { try { return new URL(stockApi).host; } catch (e) { return ''; } })();
-    if (stockApi) oastLog.push({ when: new Date().toISOString(), host, lab: 'ssrf-4' });
+    if (stockApi) {
+      const log = (await store.read('oast:log', [])) || [];
+      log.push({ when: new Date().toISOString(), host, lab: 'ssrf-4' });
+      await store.write('oast:log', log);
+    }
     const card = `<div class="card"><h3>Check stock</h3>
       <p class="muted">The result is never returned to you (blind). Watch your external server for the callback.</p>
       <form method="get"><input type="text" name="stockApi" placeholder="http://stock.weliketoshop.net:8080/product/stock"><button>Check</button></form>
@@ -247,8 +249,9 @@ const xxe = {
 
   async blind(req, url, ctx) {
     if (ctx === '/log') {
-      const rows = oastLog.filter(l => l.lab === 'xxe-3').map(l => `<li><span class="mono">${l.when}</span> → ${h(l.host)}</li>`).join('');
-      const solved = oastLog.some(l => l.lab === 'xxe-3' && !isInternal(l.host));
+      const log = (await store.read('oast:log', [])) || [];
+      const rows = log.filter(l => l.lab === 'xxe-3').map(l => `<li><span class="mono">${l.when}</span> → ${h(l.host)}</li>`).join('');
+      const solved = log.some(l => l.lab === 'xxe-3' && !isInternal(l.host));
       return { body: page(`<div class="card"><h3>OAST log</h3>${rows ? '<ul>' + rows + '</ul>' : '<p class="muted">No out-of-band fetches yet.</p>'}${solved ? ok('External DTD fetched from your host.') : ''}</div>`), solved };
     }
     const card = `<div class="card"><h3>Stock lookup (blind XXE)</h3>
@@ -259,7 +262,11 @@ const xxe = {
     const f = await form(req);
     const xml = f.xml || '';
     const host = (() => { try { const u = extractUrl(xml); return u ? new URL(u).host : ''; } catch (e) { return ''; } })();
-    if (host && /DOCTYPE|SYSTEM/i.test(xml)) oastLog.push({ when: new Date().toISOString(), host, lab: 'xxe-3' });
+    if (host && /DOCTYPE|SYSTEM/i.test(xml)) {
+      const log = (await store.read('oast:log', [])) || [];
+      log.push({ when: new Date().toISOString(), host, lab: 'xxe-3' });
+      await store.write('oast:log', log);
+    }
     return { body: page(card + '<p class="muted">XML parsed (blind — no output). Check the OAST log.</p>') };
   },
 
@@ -357,8 +364,9 @@ const cmdi = {
   // blind: no output, check the command log
   async blind(req, url, ctx) {
     if (ctx === '/log') {
-      const rows = cmdLog.filter(l => l.lab === 'cmdi-2').map(l => `<li><span class="mono">${l.when}</span> → ${h(l.cmd)}</li>`).join('');
-      const solved = cmdLog.some(l => l.lab === 'cmdi-2' && /\b(whoami|id|cat)\b/i.test(l.cmd));
+      const log = (await store.read('cmd:log', [])) || [];
+      const rows = log.filter(l => l.lab === 'cmdi-2').map(l => `<li><span class="mono">${l.when}</span> → ${h(l.cmd)}</li>`).join('');
+      const solved = log.some(l => l.lab === 'cmdi-2' && /\b(whoami|id|cat)\b/i.test(l.cmd));
       return { body: page(`<div class="card"><h3>Command execution log</h3>${rows ? '<ul>' + rows + '</ul>' : '<p class="muted">No commands executed yet.</p>'}${solved ? ok('Your command ran on the server.') : ''}</div>`), solved };
     }
     let storeId = url.searchParams.get('storeId') || '2';
@@ -368,7 +376,11 @@ const cmdi = {
       <a class="link" href="/lab/cmdi-2/log">View command log</a></div>`;
     if (!url.searchParams.get('storeId')) return { body: page(card) };
     const inject = /[;&|`$]/.test(storeId) && /\b(whoami|id|ls|cat|pwd)\b/i.test(storeId);
-    if (inject) cmdLog.push({ when: new Date().toISOString(), cmd: storeId, lab: 'cmdi-2' });
+    if (inject) {
+      const log = (await store.read('cmd:log', [])) || [];
+      log.push({ when: new Date().toISOString(), cmd: storeId, lab: 'cmdi-2' });
+      await store.write('cmd:log', log);
+    }
     return { body: page(card + '<p class="muted">Request processed.</p>') };
   },
 
@@ -503,11 +515,19 @@ const smug = {
 //  Insecure deserialization
 // ============================================================
 const deser = {
+  // Portable base64 decode (Workers Buffer is unreliable; use atob + TextDecoder).
+  b64(s) {
+    try {
+      const b = atob(decodeURIComponent(s));
+      const u = new Uint8Array(b.length);
+      for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+      return new TextDecoder().decode(u);
+    } catch (e) { return ''; }
+  },
   // tamper base64 php-serialized object
   async role(req, url, ctx) {
     const raw = (req.headers.get('cookie') || '').match(/session=([^;]+)/);
-    let decoded = '';
-    if (raw) { try { decoded = Buffer.from(decodeURIComponent(raw[1]), 'base64').toString('utf8'); } catch (e) {} }
+    const decoded = raw ? deser.b64(raw[1]) : '';
     const tampered = /isAdmin"?;?b:1|"isAdmin"\s*:\s*true/i.test(decoded);
     const card = `<div class="card"><h3>Profile</h3>
       <p class="muted">Your session cookie is a base64-encoded PHP serialized object: <span class="mono">O:4:"User":2:{s:2:"id";i:1;s:7:"isAdmin";b:0;}</span></p>
@@ -519,8 +539,7 @@ const deser = {
   // PHP object injection / magic method (gadget reads a flag)
   async gadget(req, url, ctx) {
     const raw = (req.headers.get('cookie') || '').match(/pref=([^;]+)/);
-    let decoded = '';
-    if (raw) { try { decoded = Buffer.from(decodeURIComponent(raw[1]), 'base64').toString('utf8'); } catch (e) {} }
+    const decoded = raw ? deser.b64(raw[1]) : '';
     const gadget = /O:\d+:".*?":\d+:\{.*?__destruct|filename.*?flag|"command"\s*:\s*"cat/i.test(decoded);
     const card = `<div class="card"><h3>Preferences</h3>
       <p class="muted">The <span class="mono">pref</span> cookie is a serialized object with a magic method that runs on destruction. Make it read <span class="mono">/flag</span>.</p></div>`;
@@ -624,8 +643,10 @@ const bl = {
     const f = await form(req);
     const coupon = f.coupon || '';
     if (coupon !== 'NEWCUST15') return { body: page(card + err('Unknown coupon.')) };
-    const count = (couponUse.get(coupon) || 0);
-    couponUse.set(coupon, count + 1);
+    const couponUse = (await store.read('coupon:use', {})) || {};
+    const count = couponUse[coupon] || 0;
+    couponUse[coupon] = count + 1;
+    await store.write('coupon:use', couponUse);
     const solved = count >= 1; // already used once -> reuse discovered
     return {
       body: page(card + (solved ? ok('Coupon applied again — the redemption counter was not persisted.') : ok('Coupon applied: -15%.') + ' <a class="link" href="/lab/bl-3">apply again</a>')),
@@ -647,12 +668,16 @@ const race = {
     const f = await form(req);
     const coupon = f.coupon || '';
     // check-then-act with a simulated delay window
-    const prev = redeemed.get(coupon) || null;
+    const redeemed = (await store.read('race:redeemed', {})) || {};
+    const prev = redeemed[coupon] || null;
     if (prev) return { body: page(card + err('Coupon already redeemed.')) };
     await new Promise(r => setTimeout(r, 80)); // race window
-    redeemed.set(coupon, { ts: Date.now(), count: 1 });
-    const count = (raceEmailTs.get(coupon) || 0) + 1;
-    raceEmailTs.set(coupon, count);
+    redeemed[coupon] = { ts: Date.now(), count: 1 };
+    await store.write('race:redeemed', redeemed);
+    const raceEmailTs = (await store.read('race:email', {})) || {};
+    const count = (raceEmailTs[coupon] || 0) + 1;
+    raceEmailTs[coupon] = count;
+    await store.write('race:email', raceEmailTs);
     const solved = count >= 2;
     return {
       body: page(card + (solved ? ok('Coupon redeemed multiple times via parallel requests — limit overrun!') : ok('Coupon redeemed: -50%.'))),
@@ -663,14 +688,20 @@ const race = {
   // multi-endpoint: change email + reset password simultaneously
   async multi(req, url, ctx) {
     if (ctx === '/email') {
-      raceEmailTs.set('multi', Date.now());
-      const other = raceResetTs.get('multi') || 0;
+      const raceEmailTs = (await store.read('race:email', {})) || {};
+      raceEmailTs.multi = Date.now();
+      await store.write('race:email', raceEmailTs);
+      const raceResetTs = (await store.read('race:reset', {})) || {};
+      const other = raceResetTs.multi || 0;
       const solved = Date.now() - other < 600 && other > 0;
       return { body: page(ok(solved ? 'Email changed (and password reset in the same tick!)' : 'Email changed.')), solved };
     }
     if (ctx === '/reset') {
-      raceResetTs.set('multi', Date.now());
-      const other = raceEmailTs.get('multi') || 0;
+      const raceResetTs = (await store.read('race:reset', {})) || {};
+      raceResetTs.multi = Date.now();
+      await store.write('race:reset', raceResetTs);
+      const raceEmailTs = (await store.read('race:email', {})) || {};
+      const other = raceEmailTs.multi || 0;
       const solved = Date.now() - other < 600 && other > 0;
       return { body: page(ok(solved ? 'Password reset (and email changed in the same tick!)' : 'Password reset email sent.')), solved };
     }
