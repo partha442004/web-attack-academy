@@ -267,24 +267,9 @@
     });
   }
 
-  function setupTheme() {
-    const btn = document.getElementById('theme-toggle');
-    const saved = localStorage.getItem('waa-theme');
-    const apply = (dark) => {
-      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-      btn.textContent = dark ? '☀️ Light' : '🌙 Dark';
-      localStorage.setItem('waa-theme', dark ? 'dark' : 'light');
-    };
-    btn.addEventListener('click', () => {
-      apply(document.documentElement.dataset.theme !== 'dark');
-    });
-    apply(saved === 'dark');
-  }
-
   fetch('data/labs.json').then(r => r.json()).then(d => {
     state.data = d;
     setupToolbar();
-    setupTheme();
     setupAuth();
     loadSolved();
   }).catch(() => {
