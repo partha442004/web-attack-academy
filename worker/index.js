@@ -1056,7 +1056,7 @@ export default {
       'Access-Control-Allow-Origin': reqOrigin || '*',
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Cookie, X-Forwarded-For, Referer, stayLoggedIn, userId, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Cookie, X-Forwarded-For, X-Forwarded-Host, X-Forwarded-Scheme, Host, Origin, Referer, stayLoggedIn, userId, Authorization',
       'Access-Control-Expose-Headers': 'x-lab-solved, Set-Cookie',
       'Cache-Control': 'no-store',
       ...extra
@@ -1098,12 +1098,15 @@ export default {
     try {
       const res = await handler(request, url, sub);
       const headers = cors({ 'Content-Type': res.contentType || 'text/html' });
+      if (res.location) {
+        headers['Location'] = res.location;
+      }
       if (res.solved) {
         const sid = markSolved(request, id);
         headers['x-lab-solved'] = 'true';
         headers['Set-Cookie'] = cookieSet(sid);
       }
-      return new Response(res.body, { headers });
+      return new Response(res.body, { status: res.status || 200, headers });
     } catch (e) {
       return new Response(html(`<div class="err">Lab error: ${htmlenc(e.message)}</div>`), { headers: cors({ 'Content-Type': 'text/html' }) });
     }

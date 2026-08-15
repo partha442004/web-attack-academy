@@ -110,6 +110,37 @@ const sig = await md5("supersecret" + pay);
 await t("crypto-2 jwt", "/lab/crypto-2", { headers: { Authorization: "Bearer " + hdr + "." + pay + "." + sig } });
 await t("unknown", "/lab/nope");
 
+// ---------- CORS ----------
+await t("cors-1 any", "/lab/cors-1", { headers: { Origin: "https://evil.com" } });
+await t("cors-2 null", "/lab/cors-2", { headers: { Origin: "null" } });
+await t("cors-3 suffix", "/lab/cors-3", { headers: { Origin: "https://eviltrusted.com" } });
+await t("cors-4 substr", "/lab/cors-4", { headers: { Origin: "https://evilpartner.com" } });
+// ---------- Host header ----------
+await t("host-1 poison", "/lab/host-1/reset?username=carlos", { method: "POST", headers: { Host: "evil.com" } });
+await t("host-2 xfh", "/lab/host-2/reset?username=carlos", { method: "POST", headers: { "X-Forwarded-Host": "evil.com" } });
+await t("host-3 bypass", "/lab/host-3/reset?username=carlos", { method: "POST", headers: { Host: "evil.com@localhost:8787" } });
+// ---------- Web cache poisoning ----------
+await t("cache-1 xfh", "/lab/cache-1", { headers: { "X-Forwarded-Host": "evil.com" } });
+await t("cache-2 scheme", "/lab/cache-2", { headers: { "X-Forwarded-Scheme": "http" } });
+await t("cache-3 utm", "/lab/cache-3?utm_source=evil.com");
+// ---------- Server-side prototype pollution ----------
+await t("proto-1 proto", "/lab/proto-1", { method: "POST", headers: { "Content-Type": "application/json" }, body: '{"__proto__":{"isAdmin":true}}' });
+await t("proto-2 nested", "/lab/proto-2", { method: "POST", headers: { "Content-Type": "application/json" }, body: '{"constructor":{"prototype":{"isAdmin":true}}}' });
+await t("proto-3 gadget", "/lab/proto-3", { method: "POST", headers: { "Content-Type": "application/json" }, body: '{"__proto__":{"shell":"/bin/sh"}}' });
+// ---------- GraphQL ----------
+await t("graphql-1 intro", "/lab/graphql-1", { method: "POST", headers: { "Content-Type": "application/json" }, body: '{"query":"{ __schema { types { name } } }"}' });
+await t("graphql-2 bola", "/lab/graphql-2", { method: "POST", headers: { "Content-Type": "application/json" }, body: '{"query":"{ user(id: 2) { username email password } }"}' });
+await t("graphql-3 batch", "/lab/graphql-3", { method: "POST", headers: { "Content-Type": "application/json" }, body: '[{"query":"{ping}"},{"query":"{ping}"}]' });
+// ---------- WebSockets ----------
+await t("ws-1 cswsh", "/lab/ws-1/connect", { headers: { Origin: "https://evil.com", Cookie: "academy_session=abc123" } });
+await t("ws-2 stored", "/lab/ws-2/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: '{"message":"<img src=x onerror=alert(1)>"}' });
+// ---------- Open redirect ----------
+await t("redirect-1 open", "/lab/redirect-1?url=https://evil.com");
+await t("redirect-2 bypass", "/lab/redirect-2?url=https://academy.example@evil.com");
+// ---------- Information disclosure ----------
+await t("info-1 debug", "/lab/info-1/debug");
+await t("info-2 sourcemap", "/lab/info-2/app.js.map");
+
 async function md5(s) {
   return crypto.createHash("md5").update(s).digest("hex");
 }

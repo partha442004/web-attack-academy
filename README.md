@@ -1,6 +1,6 @@
 # Web Attack Academy
 
-A deliberately vulnerable practice platform for learning web attacks — 72 labs inspired by the PortSwigger Web Security Academy (SQLi, XSS, CSRF, clickjacking, path traversal, auth, access control, SSRF, XXE, SSTI, command injection, NoSQL injection, request smuggling, insecure deserialization, file upload, business logic, race conditions, and weak crypto). Front-end runs on GitHub Pages; the vulnerable lab backend runs on a Cloudflare Worker.
+A deliberately vulnerable practice platform for learning web attacks — 94 labs inspired by the PortSwigger Web Security Academy (SQLi, XSS, CSRF, clickjacking, path traversal, auth, access control, SSRF, XXE, SSTI, command injection, NoSQL injection, request smuggling, insecure deserialization, file upload, business logic, race conditions, weak crypto, CORS, host header attacks, web cache poisoning, prototype pollution, GraphQL, WebSockets, open redirect, and information disclosure). Front-end runs on GitHub Pages; the vulnerable lab backend runs on a Cloudflare Worker.
 
 ## Architecture
 
@@ -18,7 +18,7 @@ worker/          Cloudflare Worker backend (the vulnerable apps)
   wrangler.toml  Worker deployment config
 ```
 
-## Labs (72)
+## Labs (94)
 
 | Category | Labs |
 |----------|------|
@@ -40,6 +40,14 @@ worker/          Cloudflare Worker backend (the vulnerable apps)
 | Business logic | `bl-1..3` (price tampering, negative quantity, coupon reuse) |
 | Race conditions | `race-1..2` (coupon overrun, multi-endpoint) |
 | Weak crypto | `crypto-1..2` (predictable reset token, forged JWT) |
+| CORS | `cors-1..4` (any origin, null origin, suffix bypass, substring bypass) |
+| Host header attacks | `host-1..3` (reset poisoning, X-Forwarded-Host, validation bypass) |
+| Web cache poisoning | `cache-1..3` (unkeyed XFH, unkeyed XFS, unkeyed utm) |
+| Prototype pollution | `proto-1..3` (__proto__, constructor.prototype, RCE gadget) |
+| GraphQL | `graphql-1..3` (introspection, BOLA, batching) |
+| WebSockets | `ws-1..2` (CSWSH, stored XSS) |
+| Open redirect | `redirect-1..2` (no validation, validation bypass) |
+| Information disclosure | `info-1..2` (debug errors, leftover files) |
 
 ## Local development
 

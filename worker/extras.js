@@ -734,6 +734,315 @@ const crypto = {
 };
 
 // ============================================================
+//  CORS (misconfigured cross-origin resource sharing)
+// ============================================================
+const corsLabs = {
+  // reflects ANY foreign Origin with credentials=true
+  async any(req, url, ctx) {
+    const origin = req.headers.get('Origin') || '';
+    const foreign = origin && origin !== url.origin;
+    const solved = foreign;
+    return { body: page(`<div class="card"><h3>My Account API</h3>
+      <p class="muted">Endpoint <span class="mono">GET /lab/cors-1</span> reflects any Origin and allows credentials — an attacker page can read the response.</p>
+      <p>Origin on request: <b>${h(origin || '(none)')}</b> — ${solved ? ok('reflected + credentials allowed (vulnerable)') : err('nothing foreign reflected')}</p></div>`), solved };
+  },
+  // trusts the literal "null" origin
+  async nullOrigin(req, url, ctx) {
+    const origin = req.headers.get('Origin') || '';
+    const solved = origin === 'null';
+    return { body: page(`<div class="card"><h3>Trusted partners API</h3>
+      <p class="muted">Only sandboxed (file://, iframe <span class="mono">sandbox</span>) requests send <span class="mono">Origin: null</span>. The server blindly trusts it.</p>
+      <p>Origin on request: <b>${h(origin || '(none)')}</b> — ${solved ? ok('Origin: null treated as trusted (vulnerable)') : err('not trusted')}</p></div>`), solved };
+  },
+  // allowlist bug: origin.endsWith('trusted.com') without leading dot
+  async suffix(req, url, ctx) {
+    const origin = req.headers.get('Origin') || '';
+    const foreign = origin && origin !== url.origin;
+    const solved = foreign && origin.endsWith('trusted.com');
+    return { body: page(`<div class="card"><h3>Trusted partners API</h3>
+      <p class="muted">Intended allowlist: <span class="mono">https://trusted.com</span>. The check is <span class="mono">origin.endsWith('trusted.com')</span> — missing the leading dot, so <span class="mono">https://eviltrusted.com</span> passes.</p>
+      <p>Origin on request: <b>${h(origin || '(none)')}</b> — ${solved ? ok('endsWith allowlist bypassed (vulnerable)') : err('not approved')}</p></div>`), solved };
+  },
+  // allowlist bug: origin.includes('partner.com') substring match
+  async substring(req, url, ctx) {
+    const origin = req.headers.get('Origin') || '';
+    const foreign = origin && origin !== url.origin;
+    const solved = foreign && origin.includes('partner.com');
+    return { body: page(`<div class="card"><h3>Partner API</h3>
+      <p class="muted">Allowlist uses <span class="mono">origin.includes('partner.com')</span> — a substring match, so <span class="mono">https://evilpartner.com</span> passes.</p>
+      <p>Origin on request: <b>${h(origin || '(none)')}</b> — ${solved ? ok('substring allowlist bypassed (vulnerable)') : err('not approved')}</p></div>`), solved };
+  }
+};
+
+// ============================================================
+//  Host header attacks
+// ============================================================
+const hostLabs = {
+  // password reset poisoning via Host header
+  async reset(req, url, ctx) {
+    const host = req.headers.get('host') || url.host;
+    const card = `<div class="card"><h3>Forgot password</h3>
+      <p class="muted">POST <span class="mono">/lab/host-1/reset?username=carlos</span>. The reset link is built from the <b>Host</b> header — poison it to hijack the reset.</p>
+      <form method="post"><input type="text" name="username" value="carlos"><button>Reset password</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const solved = host !== url.host;
+    const link = `https://${host}/reset?token=3a2b1c9d`;
+    return { body: page(card + (solved ? ok('Reset link sent to attacker-controlled host: ' + h(link)) : ok('Reset link sent: ' + h(link)))), solved };
+  },
+  // password reset poisoning via X-Forwarded-Host (host header trusted by proxy)
+  async xfh(req, url, ctx) {
+    const xfh = req.headers.get('x-forwarded-host') || '';
+    const card = `<div class="card"><h3>Forgot password</h3>
+      <p class="muted">A reverse proxy forwards <span class="mono">X-Forwarded-Host</span> unvalidated. POST <span class="mono">/lab/host-2/reset?username=carlos</span> with a poisoned value.</p>
+      <form method="post"><input type="text" name="username" value="carlos"><button>Reset password</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const solved = xfh && xfh !== url.host;
+    const link = `https://${xfh || url.host}/reset?token=4f8e2a11`;
+    return { body: page(card + (solved ? ok('Reset link uses attacker-controlled X-Forwarded-Host: ' + h(link)) : ok('Reset link sent: ' + h(link)))), solved };
+  },
+  // Host validation bypass via userinfo (@) injection
+  async bypass(req, url, ctx) {
+    const host = req.headers.get('host') || url.host;
+    const card = `<div class="card"><h3>Forgot password</h3>
+      <p class="muted">The server validates the Host ends with the site hostname, but accepts an attacker prefix separated by <span class="mono">@</span>: <span class="mono">Host: evil.com@${h(url.host)}</span></p>
+      <form method="post"><input type="text" name="username" value="carlos"><button>Reset password</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const solved = host !== url.host && host.endsWith(url.host) && /[@/\\]/.test(host);
+    const link = `https://${host}/reset?token=9d1c5f2a`;
+    return { body: page(card + (solved ? ok('Validation bypassed — reset link: ' + h(link)) : ok('Reset link sent: ' + h(link)))), solved };
+  }
+};
+
+// ============================================================
+//  Web cache poisoning (emulated: unkeyed inputs reflected)
+// ============================================================
+const cacheLabs = {
+  // unkeyed X-Forwarded-Host reflected into a script src
+  async xfhost(req, url, ctx) {
+    const xfh = req.headers.get('x-forwarded-host') || '';
+    const track = xfh ? `https://${xfh}/track.js` : '/track.js';
+    const solved = xfh && xfh !== url.host;
+    return { body: page(`<div class="card"><h3>Home</h3>
+      <p class="muted">The page embeds a tracker built from the (unkeyed) <span class="mono">X-Forwarded-Host</span> header — send a malicious host and the cached copy serves <span class="mono">evil.com/track.js</span> to everyone.</p>
+      <p>Tracker URL: <span class="mono">${h(track)}</span></p>
+      <script src="${track}"></script></div>`), solved };
+  },
+  // unkeyed X-Forwarded-Scheme downgrades the protocol
+  async scheme(req, url, ctx) {
+    const xfs = req.headers.get('x-forwarded-scheme') || '';
+    const scheme = xfs || url.protocol.replace(':', '');
+    const solved = xfs === 'http';
+    return { body: page(`<div class="card"><h3>Secure page</h3>
+      <p class="muted">The page is served over ${h(scheme)}. Sending <span class="mono">X-Forwarded-Scheme: http</span> (unkeyed) forces a cache that serves this page over HTTP to everyone.</p>
+      <p>Scheme: <b>${h(scheme)}</b> — ${solved ? ok('downgraded (vulnerable)') : 'normal'}</p></div>`), solved };
+  },
+  // unkeyed utm_source query param reflected unescaped (stored into cache)
+  async utm(req, url, ctx) {
+    const utm = url.searchParams.get('utm_source') || '';
+    const solved = utm !== '';
+    return { body: page(`<div class="card"><h3>Marketing page</h3>
+      <p class="muted">Tracking param <span class="mono">utm_source</span> is unkeyed by the cache and reflected unescaped — a poisoned cached copy carries your payload to every visitor.</p>
+      <p>utm_source reflected: <b>${utm}</b></p></div>`), solved };
+  }
+};
+
+// ============================================================
+//  Server-side prototype pollution (emulated — no global mutation)
+// ============================================================
+const protoLabs = {
+  // top-level __proto__ in JSON merge
+  async proto(req, url, ctx) {
+    const card = `<div class="card"><h3>Merge user settings</h3>
+      <p class="muted">POST <span class="mono">/lab/proto-1</span> with JSON that is merged into a server-side object via an unsafe merge: <span class="mono">{"__proto__":{"isAdmin":true}}</span></p>
+      <pre class="mono">{"isAdmin":false}</pre></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const body = await json(req);
+    const polluted = Object.prototype.hasOwnProperty.call(body, '__proto__');
+    return { body: page(card + (polluted ? ok('isAdmin=true — top-level __proto__ pollution accepted (emulated, no global state mutated).') : ok('isAdmin=false.'))), solved: polluted };
+  },
+  // nested via constructor.prototype
+  async nested(req, url, ctx) {
+    const card = `<div class="card"><h3>Merge user settings (hardened)</h3>
+      <p class="muted">Top-level <span class="mono">__proto__</span> is filtered, but a nested path is not: <span class="mono">{"constructor":{"prototype":{"isAdmin":true}}}</span></p>
+      <pre class="mono">{"isAdmin":false}</pre></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const body = await json(req);
+    const polluted = Object.prototype.hasOwnProperty.call(body, 'constructor')
+      && body.constructor
+      && Object.prototype.hasOwnProperty.call(body.constructor, 'prototype');
+    return { body: page(card + (polluted ? ok('isAdmin=true — nested constructor.prototype pollution accepted.') : ok('isAdmin=false.'))), solved: polluted };
+  },
+  // pollution gadget: __proto__ with shell/NODE_OPTIONS leads to RCE
+  async gadget(req, url, ctx) {
+    const card = `<div class="card"><h3>Admin CLI</h3>
+      <p class="muted">The server spawns a child process after merging JSON. Polluting <span class="mono">__proto__</span> with gadget keys (<span class="mono">shell</span>, <span class="mono">NODE_OPTIONS</span>) changes how it spawns: <span class="mono">{"__proto__":{"shell":"/proc/self/exe","NODE_OPTIONS":"--require /proc/self/environ"}}</span></p>
+      <pre class="mono">{"command":"ls -la"}</pre></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const body = await json(req);
+    const ownProto = Object.prototype.hasOwnProperty.call(body, '__proto__');
+    const nested = ownProto && body.__proto__ ? body.__proto__ : {};
+    const rce = ownProto && (Object.prototype.hasOwnProperty.call(nested, 'shell') || Object.prototype.hasOwnProperty.call(nested, 'NODE_OPTIONS'));
+    return { body: page(card + (rce ? ok('child_process spawned via polluted options — arbitrary command execution (emulated).') : ok('command ran with default options.'))), solved: rce };
+  }
+};
+
+// ============================================================
+//  GraphQL API
+// ============================================================
+const graphql = {
+  // introspection enabled leaks the schema
+  async intro(req, url, ctx) {
+    const card = `<div class="card"><h3>GraphQL API</h3>
+      <p class="muted">POST <span class="mono">/lab/graphql-1</span> JSON <span class="mono">{"query":"{ __schema { types { name } } }"}</span></p></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const body = await json(req);
+    const q = String(body.query || '');
+    const solved = /__schema|__type/.test(q);
+    const res = solved
+      ? { data: { __schema: { queryType: { name: 'Query' }, types: [ { name: 'Query' }, { name: 'User' }, { name: 'String' }, { name: 'Int' } ] } } }
+      : { errors: [{ message: 'Introspection tokens required to view the schema' }] };
+    return { body: JSON.stringify(res), solved, contentType: 'application/json' };
+  },
+  // BOLA: fetch any user object by id without authorization
+  async bola(req, url, ctx) {
+    const card = `<div class="card"><h3>GraphQL API</h3>
+      <p class="muted">The <span class="mono">user(id:)</span> query returns any record — try <span class="mono">{"query":"{ user(id: 2) { username email password } }"}</span></p></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const body = await json(req);
+    const q = String(body.query || '');
+    const m = q.match(/user\s*\(\s*id\s*:\s*(\d+)\s*\)/);
+    const id = m ? +m[1] : null;
+    const sensitive = /password|email|secret|ssn/i.test(q);
+    const solved = id !== null && id !== 1 && sensitive;
+    if (id === null) return { body: JSON.stringify({ errors: [{ message: 'Unknown query' }] }), contentType: 'application/json' };
+    const users = {
+      1: { username: 'wiener', email: 'wiener@academy.example' },
+      2: { username: 'carlos', email: 'carlos@academy.example', password: 'c0rrect-h0rse-b4ttery-st4ple' },
+      3: { username: 'montoya', email: 'montoya@academy.example', password: 'p4ssw0rd123' }
+    };
+    const res = users[id] ? { data: { user: users[id] } } : { data: { user: null } };
+    return { body: JSON.stringify(res), solved, contentType: 'application/json' };
+  },
+  // aliasing / batching: many queries in one array
+  async batch(req, url, ctx) {
+    const card = `<div class="card"><h3>GraphQL API</h3>
+      <p class="muted">Batching is allowed — send a JSON <b>array</b> of queries: <span class="mono">[{"query":"{ping}"},{"query":"{ping}"}]</span></p></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const body = await json(req);
+    const isBatch = Array.isArray(body);
+    const solved = isBatch && body.length >= 2;
+    const res = isBatch
+      ? body.map((b, i) => ({ data: { ok: true, index: i, query: (b && b.query) || '' } }))
+      : { errors: [{ message: 'Send a JSON array to batch multiple queries' }] };
+    return { body: JSON.stringify(res), solved, contentType: 'application/json' };
+  }
+};
+
+// ============================================================
+//  WebSockets (emulated handshake + stored XSS via chat)
+// ============================================================
+const wsMsgs = [];
+const ws = {
+  // CSWSH: handshake does not validate Origin, session cookie is reused
+  async connect(req, url, ctx) {
+    const origin = req.headers.get('Origin') || '';
+    const cookie = req.headers.get('cookie') || '';
+    const authed = /academy_session=/.test(cookie);
+    const crossSite = origin && origin !== url.origin;
+    const solved = crossSite && authed;
+    return { body: page(`<div class="card"><h3>Live chat (WebSocket)</h3>
+      <p class="muted">Connect via <span class="mono">GET /lab/ws-1/connect</span> with an <b>Origin</b> + your session cookie. The handshake never validates Origin → Cross-Site WebSocket Hijacking.</p>
+      <p>Origin: <b>${h(origin || '(none)')}</b> · session: ${authed ? ok('present') : err('missing')}</p>
+      ${solved ? ok('WebSocket opened from a foreign Origin with your session — attacker can read/send chat as you.') : ''}</div>`), solved };
+  },
+  // stored XSS: chat messages re-rendered without sanitization
+  async send(req, url, ctx) {
+    const card = `<div class="card"><h3>Live chat</h3>
+      <p class="muted">POST <span class="mono">/lab/ws-2/send</span> JSON <span class="mono">{"message":"hello"}</span>. Messages are re-rendered unescaped on <span class="mono">/lab/ws-2</span> (stored XSS).</p>
+      <form method="post"><input type="text" name="message" placeholder="message"><button>Send</button></form></div>`;
+    if (req.method === 'POST') {
+      const ct = req.headers.get('content-type') || '';
+      let text = '';
+      if (ct.includes('application/json')) { const b = await json(req); text = b.message || ''; }
+      else { const f = await form(req); text = f.message || ''; }
+      if (text) wsMsgs.push(text);
+      const solved = /<|>|onerror|onload|javascript:/i.test(text);
+      return { body: page(card + (solved ? ok('Message delivered — it will render unescaped on <span class="mono">/lab/ws-2</span> (stored XSS).') : ok('Message sent.'))), solved };
+    }
+    const list = wsMsgs.length ? wsMsgs.map(m => `<div class="card">${m}</div>`).join('') : '<p class="muted">No messages yet.</p>';
+    return { body: page(`<div class="card"><h3>Live chat history</h3>${list}</div>`) };
+  }
+};
+
+// ============================================================
+//  Open redirect
+// ============================================================
+const redirectLabs = {
+  // no validation at all
+  async open(req, url, ctx) {
+    const card = `<div class="card"><h3>Follow link</h3>
+      <p class="muted">GET <span class="mono">/lab/redirect-1?url=https://example.com</span> — redirects straight to whatever you supply.</p></div>`;
+    const target = url.searchParams.get('url') || '';
+    if (!target) return { body: page(card) };
+    const solved = !target.startsWith(url.origin) && /^https?:\/\//.test(target);
+    return { status: 302, location: target, solved, body: page(card + (solved ? ok('Redirecting off-site to ' + h(target) + ' — open redirect.') : ok('Redirecting.'))) };
+  },
+  // validation checks "contains academy.example" — bypass with userinfo @
+  async bypass(req, url, ctx) {
+    const card = `<div class="card"><h3>Login → continue</h3>
+      <p class="muted">Validation only checks the target <b>contains</b> <span class="mono">academy.example</span>. Bypass with a userinfo trick: <span class="mono">?url=https://academy.example@evil.com</span></p></div>`;
+    const target = url.searchParams.get('url') || '';
+    if (!target) return { body: page(card) };
+    const validated = target.includes('academy.example');
+    if (!validated) return { body: page(card + err('Invalid target: must contain academy.example.')) };
+    let host = target;
+    const schemeMatch = target.match(/^[a-z][a-z0-9+.-]*:\/\/([^\/?#]+)/i);
+    if (schemeMatch) host = schemeMatch[1];
+    host = host.split('/')[0];
+    if (host.includes('@')) host = host.split('@').pop();
+    const offSite = host !== 'academy.example' && host !== 'www.academy.example';
+    const solved = offSite;
+    return { status: 302, location: target, solved, body: page(card + (solved ? ok('Redirecting off-site to ' + h(host) + ' — validation bypassed.') : ok('Redirecting to ' + h(host) + '.'))) };
+  }
+};
+
+// ============================================================
+//  Information disclosure
+// ============================================================
+const info = {
+  // verbose debug errors leak stack + secrets
+  async debug(req, url, ctx) {
+    const card = `<div class="card"><h3>Application</h3>
+      <p class="muted">A debug route may be enabled: <span class="mono">/lab/info-1/debug</span> (or <span class="mono">?debug=1</span>).</p></div>`;
+    const debugPath = ctx === '/debug' || url.searchParams.get('debug') === '1';
+    if (!debugPath) return { body: page(card) };
+    const leak = `<pre class="mono">GET /api/account
+Error: connect ECONNREFUSED 127.0.0.1:5432
+  at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1146:16)
+  at internal/connect/tcp.js:298:9
+DB_PASS=Ac4demy$3cr3t
+SESSION_SECRET=7d8f2a1c
+Stack: /app/workers/api.js:42:9</pre>`;
+    return { body: page(card + ok('Debug mode: verbose errors + secrets exposed.') + leak), solved: true };
+  },
+  // leftover source map / .git / backup files
+  async source(req, url, ctx) {
+    const card = `<div class="card"><h3>Static app</h3>
+      <p class="muted">Leftover files may be public: <span class="mono">/lab/info-2/app.js.map</span>, <span class="mono">/lab/info-2/.git/config</span>, <span class="mono">/lab/info-2/backup.sql</span>, or <span class="mono">?source=1</span>.</p></div>`;
+    const c = (ctx || '').toLowerCase();
+    const query = (url.searchParams.get('source') || '').toLowerCase();
+    const leaky = c.includes('.map') || c.includes('.git') || c.includes('backup') || query === '1' || query === 'true';
+    if (!leaky) return { body: page(card) };
+    const src = `<pre class="mono">// app.js (source map backup)
+const ADMIN_PW = 'P@ssw0rd_Admin';
+function checkLogin(u, p) { return u === 'admin' && p === ADMIN_PW; }
+-- backup.sql --
+INSERT INTO users (username, password_md5) VALUES ('admin','5f4dcc3b5aa765d61d8327deb882cf99');</pre>`;
+    return { body: page(card + ok('Source map / backup exposed — hardcoded secrets.') + src), solved: true };
+  }
+};
+
+// ============================================================
 //  ROUTES
 // ============================================================
 export const extraRoutes = {
@@ -769,5 +1078,27 @@ export const extraRoutes = {
   'race-1': (r, u, c) => race.redeem(r, u, c),
   'race-2': (r, u, c) => race.multi(r, u, c),
   'crypto-1': (r, u, c) => crypto.token(r, u, c),
-  'crypto-2': (r, u, c) => crypto.jwt(r, u, c)
+  'crypto-2': (r, u, c) => crypto.jwt(r, u, c),
+  'cors-1': (r, u, c) => corsLabs.any(r, u, c),
+  'cors-2': (r, u, c) => corsLabs.nullOrigin(r, u, c),
+  'cors-3': (r, u, c) => corsLabs.suffix(r, u, c),
+  'cors-4': (r, u, c) => corsLabs.substring(r, u, c),
+  'host-1': (r, u, c) => hostLabs.reset(r, u, c),
+  'host-2': (r, u, c) => hostLabs.xfh(r, u, c),
+  'host-3': (r, u, c) => hostLabs.bypass(r, u, c),
+  'cache-1': (r, u, c) => cacheLabs.xfhost(r, u, c),
+  'cache-2': (r, u, c) => cacheLabs.scheme(r, u, c),
+  'cache-3': (r, u, c) => cacheLabs.utm(r, u, c),
+  'proto-1': (r, u, c) => protoLabs.proto(r, u, c),
+  'proto-2': (r, u, c) => protoLabs.nested(r, u, c),
+  'proto-3': (r, u, c) => protoLabs.gadget(r, u, c),
+  'graphql-1': (r, u, c) => graphql.intro(r, u, c),
+  'graphql-2': (r, u, c) => graphql.bola(r, u, c),
+  'graphql-3': (r, u, c) => graphql.batch(r, u, c),
+  'ws-1': (r, u, c) => ws.connect(r, u, c),
+  'ws-2': (r, u, c) => ws.send(r, u, c),
+  'redirect-1': (r, u, c) => redirectLabs.open(r, u, c),
+  'redirect-2': (r, u, c) => redirectLabs.bypass(r, u, c),
+  'info-1': (r, u, c) => info.debug(r, u, c),
+  'info-2': (r, u, c) => info.source(r, u, c)
 };
