@@ -10,6 +10,7 @@
   <div class="topbar">
     <a class="brand" href="index.html" style="color:#fff;text-decoration:none">Web Attack <span>Academy</span></a>
     <div class="topbar-right">
+      <span id="auth-area"></span>
       <button id="theme-toggle" class="btn gray btn-sm" title="Toggle dark mode" aria-label="Toggle dark mode">🌙 Dark</button>
       <div class="progress" id="global-progress">0 / 0 solved</div>
     </div>
@@ -24,11 +25,13 @@
       <span class="toolbar-spacer"></span>
       <button id="btn-export" class="btn gray btn-sm" title="Download your progress as JSON">Export</button>
       <label class="btn gray btn-sm" style="cursor:pointer" title="Restore progress from a JSON file">Import<input type="file" id="btn-import" accept="application/json" style="display:none"></label>
+      <button id="btn-reset-progress" class="btn gray btn-sm" title="Reset your saved progress" style="display:none">Reset progress</button>
     </div>
     <div id="grid" class="grid"></div>
     <p class="muted" style="margin-top:16px">Labs run inside a sandboxed Cloudflare Worker so it is safe to practice 24/7 from anywhere. Solve a lab → the server marks it complete for your session.</p>
   </div>
   <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

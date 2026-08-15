@@ -36,3 +36,15 @@ export async function write(key, val) {
     mem.set(key, val);
   }
 }
+
+export async function del(key) {
+  if (kv) {
+    try {
+      await kv.delete(key);
+    } catch (e) {
+      /* best effort */
+    }
+  } else {
+    mem.delete(key);
+  }
+}

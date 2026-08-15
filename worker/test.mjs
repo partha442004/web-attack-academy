@@ -168,6 +168,41 @@ await t("oauth-3 email", "/lab/oauth-3?email=" + encodeURIComponent("bob@academy
   console.log(`status after bulk   solved=${stj.solved}`);
 }
 
+// ---------- Accounts ----------
+{
+  const mk = await worker.fetch(new Request(base + "/api/mark-many", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: ["xss-1"] }) }), {});
+  const anonCookie = mk.headers.get("Set-Cookie").split(";")[0];
+  const reg = await worker.fetch(new Request(base + "/api/register", { method: "POST", headers: { "Content-Type": "application/json", Cookie: anonCookie }, body: JSON.stringify({ username: "alice", password: "secret1" }) }), {});
+  const regj = await reg.json();
+  const regCookie = reg.headers.get("Set-Cookie").split(";")[0];
+  console.log(`register alice      status=${reg.status} ok=${regj.ok} user=${regj.user} cookie=${regCookie.startsWith("academy_session=")}`);
+  const me = await worker.fetch(new Request(base + "/api/me", { headers: { Cookie: regCookie } }), {});
+  const mej = await me.json();
+  console.log(`me after register   status=${me.status} user=${mej.user} solved=[${mej.solved.join(",")}] anonMerged=${mej.solved.includes("xss-1")}`);
+  const st2 = await worker.fetch(new Request(base + "/api/status/xss-1", { headers: { Cookie: regCookie } }), {});
+  const st2j = await st2.json();
+  console.log(`status after merge  solved=${st2j.solved}`);
+  const dup = await worker.fetch(new Request(base + "/api/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "alice", password: "secret1" }) }), {});
+  console.log(`register duplicate  status=${dup.status}`);
+  const bad = await worker.fetch(new Request(base + "/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "alice", password: "wrongpass" }) }), {});
+  console.log(`login bad pass      status=${bad.status}`);
+  const good = await worker.fetch(new Request(base + "/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "alice", password: "secret1" }) }), {});
+  const goodCookie = good.headers.get("Set-Cookie").split(";")[0];
+  console.log(`login good          status=${good.status} user=${(await good.json()).user}`);
+  const mk2 = await worker.fetch(new Request(base + "/api/mark-many", { method: "POST", headers: { "Content-Type": "application/json", Cookie: goodCookie }, body: JSON.stringify({ ids: ["sqli-1"] }) }), {});
+  console.log(`mark while logged   status=${mk2.status} marked=${(await mk2.json()).marked}`);
+  const reset = await worker.fetch(new Request(base + "/api/reset", { method: "POST", headers: { Cookie: goodCookie } }), {});
+  const resetj = await reset.json();
+  console.log(`reset progress      status=${reset.status} solved=[${resetj.solved.join(",")}]`);
+  const me2 = await worker.fetch(new Request(base + "/api/me", { headers: { Cookie: goodCookie } }), {});
+  const me2j = await me2.json();
+  console.log(`me after reset      user=${me2j.user} solved=[${me2j.solved.join(",")}]`);
+  const logout = await worker.fetch(new Request(base + "/api/logout", { method: "POST", headers: { Cookie: goodCookie } }), {});
+  const me3 = await worker.fetch(new Request(base + "/api/me", { headers: { Cookie: goodCookie } }), {});
+  const me3j = await me3.json();
+  console.log(`logout then me      status=${me3.status} user=${me3j.user}`);
+}
+
 async function md5(s) {
   return crypto.createHash("md5").update(s).digest("hex");
 }

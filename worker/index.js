@@ -53,6 +53,12 @@ const SECRETS = {
 // KV is needed because Cloudflare isolates don't share memory: a session
 // created on one isolate must be visible to the next request (which may be
 // handled by a different isolate). Falls back to in-memory when no binding.
+//
+// Two kinds of session exist:
+//   * anonymous:  session:{sid} = { solved: [...] }
+//   * logged-in:  session:{sid} = { user: <username> }  — solved list lives
+//                 in progress:<username> so it follows the account across
+//                 devices. The first login merges the anonymous solved set.
 
 function sessionIdFrom(req) {
   const c = (req.headers.get('cookie') || '').split(';').map(s => s.trim());
@@ -60,29 +66,165 @@ function sessionIdFrom(req) {
   return hit ? hit.slice('academy_session='.length) : null;
 }
 
-function newSession() {
-  return { solved: [] };
+function newSid() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 async function getSession(id) {
   if (!id) return null;
   let s = await store.read('session:' + id, null);
-  if (!s) { s = newSession(); await store.write('session:' + id, s); }
+  if (!s) { s = { solved: [] }; await store.write('session:' + id, s); }
   return s;
 }
 
+async function accountSolved(username) {
+  const p = await store.read('progress:' + username, { solved: [] });
+  return p.solved || [];
+}
+
+// Resolve a session id to { sid, user, solved }. For logged-in sessions the
+// solved list is read from the account, not the session record.
+async function resolveSession(id) {
+  if (!id) return { sid: null, user: null, solved: [] };
+  const s = await getSession(id);
+  if (s.user) return { sid: id, user: s.user, solved: await accountSolved(s.user) };
+  return { sid: id, user: null, solved: s.solved || [] };
+}
+
+async function persistSolved(sid, user, solved) {
+  if (user) {
+    await store.write('progress:' + user, { solved });
+  } else {
+    const s = await getSession(sid);
+    s.solved = solved;
+    await store.write('session:' + sid, s);
+  }
+}
+
 async function isSolved(req, labId) {
-  const s = await getSession(sessionIdFrom(req));
-  return s ? s.solved.includes(labId) : false;
+  const r = await resolveSession(sessionIdFrom(req));
+  return r.solved.includes(labId);
 }
 
 async function markSolved(req, labId) {
   let sid = sessionIdFrom(req);
-  if (!sid) { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); }
-  const s = await getSession(sid);
-  if (!s.solved.includes(labId)) s.solved.push(labId);
-  await store.write('session:' + sid, s);
+  if (!sid) sid = newSid();
+  const r = await resolveSession(sid);
+  if (!r.solved.includes(labId)) r.solved.push(labId);
+  await persistSolved(sid, r.user, r.solved);
   return sid;
+}
+
+// ---------------- accounts (real user database) ----------------
+// Real accounts are held separately from the fake vulnerable USERS map.
+// Passwords are salted SHA-256 (WebCrypto) — never stored in plaintext.
+
+async function sha256Hex(input) {
+  const data = new TextEncoder().encode(input);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function randomHex(bytes) {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return [...buf].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function cookieClear() {
+  return 'academy_session=; Path=/; Max-Age=0; HttpOnly; SameSite=None; Secure';
+}
+
+// Parse JSON body safely. Accepts JSON, form-encoded, or query params.
+async function parseCreds(req, url) {
+  try {
+    const ct = req.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      const j = await req.json();
+      return { username: String(j.username || '').trim(), password: String(j.password || '') };
+    }
+  } catch (e) { /* fall through */ }
+  if (req.method === 'POST') {
+    const p = await bodyParams(req);
+    return { username: String(p.username || '').trim(), password: String(p.password || '') };
+  }
+  return { username: String(url.searchParams.get('username') || '').trim(), password: String(url.searchParams.get('password') || '') };
+}
+
+function accountError(status, message, cors) {
+  const headers = cors ? cors({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }) : { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
+  return new Response(JSON.stringify({ ok: false, error: message }), {
+    status,
+    headers
+  });
+}
+
+// Create a session bound to a user, merging any anonymous solved set into the
+// account progress. Returns the Set-Cookie header.
+async function bindSession(req, username) {
+  const cur = await resolveSession(sessionIdFrom(req));
+  const sid = cur.sid || newSid();
+  const acct = await accountSolved(username);
+  for (const id of cur.solved) if (!acct.includes(id)) acct.push(id);
+  await store.write('progress:' + username, { solved: acct });
+  await store.write('session:' + sid, { user: username });
+  return cookieSet(sid);
+}
+
+async function handleRegister(req, cors) {
+  const { username, password } = await parseCreds(req, new URL(req.url));
+  if (!/^[A-Za-z0-9_.-]{3,20}$/.test(username)) {
+    return accountError(400, 'Username must be 3-20 chars (letters, numbers, . _ -)', cors);
+  }
+  if (password.length < 6) {
+    return accountError(400, 'Password must be at least 6 characters', cors);
+  }
+  const existing = await store.read('account:' + username, null);
+  if (existing) return accountError(409, 'Username already taken', cors);
+  const salt = randomHex(16);
+  const passHash = await sha256Hex(salt + ':' + password);
+  await store.write('account:' + username, { salt, passHash, createdAt: Date.now() });
+  const setCookie = await bindSession(req, username);
+  return new Response(JSON.stringify({ ok: true, user: username }), {
+    headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': setCookie })
+  });
+}
+
+async function handleLogin(req, cors) {
+  const { username, password } = await parseCreds(req, new URL(req.url));
+  if (!username || !password) return accountError(400, 'Username and password required', cors);
+  const acct = await store.read('account:' + username, null);
+  if (!acct) return accountError(401, 'Invalid username or password', cors);
+  const passHash = await sha256Hex(acct.salt + ':' + password);
+  if (passHash !== acct.passHash) return accountError(401, 'Invalid username or password', cors);
+  const setCookie = await bindSession(req, username);
+  const solved = await accountSolved(username);
+  return new Response(JSON.stringify({ ok: true, user: username, solved }), {
+    headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': setCookie })
+  });
+}
+
+async function handleLogout(req, cors) {
+  const sid = sessionIdFrom(req);
+  if (sid) await store.del('session:' + sid);
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': cookieClear() })
+  });
+}
+
+async function handleMe(req, cors) {
+  const r = await resolveSession(sessionIdFrom(req));
+  return new Response(JSON.stringify({ user: r.user, solved: r.solved }), {
+    headers: cors({ 'Content-Type': 'application/json' })
+  });
+}
+
+async function handleReset(req, cors) {
+  const r = await resolveSession(sessionIdFrom(req));
+  if (!r.user) return accountError(401, 'Not signed in', cors);
+  await store.write('progress:' + r.user, { solved: [] });
+  return new Response(JSON.stringify({ ok: true, solved: [] }), {
+    headers: cors({ 'Content-Type': 'application/json' })
+  });
 }
 
 // ---------------- helpers ----------------
@@ -1098,12 +1240,18 @@ export default {
       try { ids = (await request.json()).ids || []; } catch (e) { /* malformed body */ }
       if (!Array.isArray(ids)) ids = [];
       let sid = sessionIdFrom(request);
-      if (!sid) { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); }
-      const s = await getSession(sid);
-      ids.forEach(x => { if (typeof x === 'string' && !s.solved.includes(x)) s.solved.push(x); });
-      await store.write('session:' + sid, s);
-      return new Response(JSON.stringify({ marked: s.solved.length }), { headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': cookieSet(sid) }) });
+      if (!sid) { sid = newSid(); }
+      const r = await resolveSession(sid);
+      ids.forEach(x => { if (typeof x === 'string' && !r.solved.includes(x)) r.solved.push(x); });
+      await persistSolved(sid, r.user, r.solved);
+      return new Response(JSON.stringify({ marked: r.solved.length }), { headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': cookieSet(sid) }) });
     }
+    // ---- API: accounts (register/login/logout/me/reset) ----
+    if (url.pathname === '/api/register' && request.method === 'POST') return handleRegister(request, cors);
+    if (url.pathname === '/api/login' && request.method === 'POST') return handleLogin(request, cors);
+    if (url.pathname === '/api/logout' && request.method === 'POST') return handleLogout(request, cors);
+    if (url.pathname === '/api/me') return handleMe(request, cors);
+    if (url.pathname === '/api/reset' && request.method === 'POST') return handleReset(request, cors);
     // ---- API: request inspector (echo what the server actually received) ----
     if (url.pathname === '/api/reqinfo') {
       const hdrs = {};

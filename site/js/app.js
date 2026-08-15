@@ -33,6 +33,50 @@
     renderMastery();
   }
 
+  // Push any locally-solved labs (from a previous anonymous session on this device)
+  // to the account so nothing is lost after signing in.
+  async function syncLocalToServer() {
+    if (!state.data || !window.Auth || !Auth.user) return;
+    const local = loadLocalSolved();
+    const missing = [...local].filter(id => !Auth.solved.includes(id));
+    if (!missing.length) return;
+    try {
+      await fetch(CONFIG.API_BASE + '/api/mark-many', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: missing })
+      });
+    } catch (e) { /* worker down; local cache still updated */ }
+  }
+
+  function setupAuth() {
+    const btn = document.getElementById('btn-reset-progress');
+    const update = ({ user }) => {
+      if (btn) btn.style.display = user ? '' : 'none';
+    };
+    if (window.Auth) {
+      Auth.onChange(update);
+      update({ user: Auth.user });
+      Auth.onChange(async (auth) => {
+        if (auth.user) {
+          await syncLocalToServer();
+          await loadSolved();
+        }
+      });
+    }
+    if (btn) btn.addEventListener('click', async () => {
+      if (!window.Auth || !Auth.user) return;
+      if (!confirm('Reset your saved progress? This removes all solved labs from your account. This cannot be undone.')) return;
+      const ok = await Auth.resetProgress();
+      if (ok) {
+        try { localStorage.removeItem(LS_KEY); } catch (e) {}
+        await loadSolved();
+      } else {
+        alert('Could not reset progress — is the worker running?');
+      }
+    });
+  }
+
   function exportProgress() {
     const blob = new Blob([JSON.stringify({
       app: 'web-attack-academy',
@@ -226,6 +270,7 @@
     state.data = d;
     setupToolbar();
     setupTheme();
+    setupAuth();
     loadSolved();
   }).catch(() => {
     document.getElementById('grid').innerHTML = '<p class="muted">Could not load labs.json.</p>';
