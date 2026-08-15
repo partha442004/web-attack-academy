@@ -1672,6 +1672,23 @@ const redos = {
         <p class="muted">processed in ${Date.now() - started}ms</p></div>` + (solved ? ok('Query triggered catastrophic backtracking — ReDoS confirmed.') : '')),
       solved
     };
+  },
+  // catastrophic backtracking in an email-validation regex
+  async email(req, url, ctx) {
+    const email = url.searchParams.get('email') || '';
+    const started = Date.now();
+    // vulnerable nested-quantifier email regex (OWASP example) — NOT run on
+    // attacker input directly to avoid a real hang; we detect the attack shape.
+    const vuln = '<span class="mono">^([a-zA-Z0-9])(([\\-.]|[_]+)?([a-zA-Z0-9]+))*@[a-z0-9]+[.](([a-z]{2,3})|([a-z]{2,3}[.]{1}[a-z]{2,3}))$</span>';
+    const isAttack = email.length > 16 && /^[a-zA-Z0-9]{17,}[^a-zA-Z0-9@]/.test(email);
+    const solved = isAttack;
+    return {
+      body: page(`<div class="card"><h3>Email validation</h3>
+        <p class="muted">Signup validates your email against a nested-quantifier regex: ${vuln}. Feed a long run of alphanumerics followed by an invalid char (e.g. <span class="mono">?email=aaaaaaaaaaaaaaaaaaaaaaaaab!</span>) to trigger catastrophic backtracking.</p>
+        <form method="get"><input type="text" name="email" placeholder="email"><button>Check</button></form>
+        <p class="muted">processed in ${Date.now() - started}ms</p></div>` + (solved ? ok('Validation stalled — catastrophic backtracking in the email regex (ReDoS) confirmed.') : '')),
+      solved
+    };
   }
 };
 
@@ -1863,6 +1880,7 @@ export const extraRoutes = {
   'expose-2': (r, u, c) => expose.autocomplete(r, u, c),
   'formula-1': (r, u, c) => formula.csv(r, u, c),
   'redos-1': (r, u, c) => redos.search(r, u, c),
+  'redos-2': (r, u, c) => redos.email(r, u, c),
   'rebind-1': (r, u, c) => rebind.ssrf(r, u, c),
   'ctc-1': (r, u, c) => ctc.polyglot(r, u, c),
   'misconfig-1': (r, u, c) => misconfig.defaultCreds(r, u, c),

@@ -199,6 +199,7 @@ await t("formula-1 add", "/lab/formula-1", { method: "POST", headers: { "Content
 await t("formula-1 csv", "/lab/formula-1/export");
 // ---------- ReDoS ----------
 await t("redos-1 deep", "/lab/redos-1?q=aaaaaaaaaaaaaaaaaaaaaaaaab");
+await t("redos-2 email", "/lab/redos-2?email=aaaaaaaaaaaaaaaaaaaaaaaaab!");
 // ---------- DNS rebinding ----------
 await t("rebind-1 ssrf", "/lab/rebind-1?stockApi=http://7f000001.rebind.network/admin");
 // ---------- Content-type confusion ----------

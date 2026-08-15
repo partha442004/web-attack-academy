@@ -418,7 +418,8 @@
       "name": "ReDoS",
       "color": "#c0ca33",
       "labs": [
-        "redos-1"
+        "redos-1",
+        "redos-2"
       ]
     },
     {
@@ -2072,6 +2073,19 @@
         "The filter runs <code>/(a+)+$/</code> over your input.",
         "Many <code>a</code>s then a non-matching character cause exponential backtracking.",
         "Send <code>?q=aaaaaaaaaaaaaaaaaaaaaaaaab</code>."
+      ]
+    },
+    "redos-2": {
+      "title": "ReDoS — email validation regex",
+      "topic": "redos",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "The signup email validator uses a catastrophic nested-quantifier regex. Craft input that stalls it.",
+      "hint": "Send a long run of alphanumerics followed by an invalid char: <code>?email=aaaaaaaaaaaaaaaaaaaaaaaaab!</code>.",
+      "hints": [
+        "The validator runs a nested-quantifier regex (e.g. <code>(([\\-.]|[_]+)?([a-zA-Z0-9]+))*</code>) over your input.",
+        "A long run of valid local-part characters followed by a char that fails the tail causes exponential backtracking.",
+        "Send <code>?email=aaaaaaaaaaaaaaaaaaaaaaaaab!</code>."
       ]
     },
     "rebind-1": {
