@@ -117,8 +117,10 @@ await t("cors-3 suffix", "/lab/cors-3", { headers: { Origin: "https://eviltruste
 await t("cors-4 substr", "/lab/cors-4", { headers: { Origin: "https://evilpartner.com" } });
 // ---------- Host header ----------
 await t("host-1 poison", "/lab/host-1/reset?username=carlos", { method: "POST", headers: { Host: "evil.com" } });
+await t("host-1 xfh", "/lab/host-1/reset?username=carlos", { method: "POST", headers: { "X-Forwarded-Host": "evil.com" } });
 await t("host-2 xfh", "/lab/host-2/reset?username=carlos", { method: "POST", headers: { "X-Forwarded-Host": "evil.com" } });
 await t("host-3 bypass", "/lab/host-3/reset?username=carlos", { method: "POST", headers: { Host: "evil.com@localhost:8787" } });
+await t("host-3 xfh", "/lab/host-3/reset?username=carlos", { method: "POST", headers: { "X-Forwarded-Host": "evil.com@localhost:8787" } });
 // ---------- Web cache poisoning ----------
 await t("cache-1 xfh", "/lab/cache-1", { headers: { "X-Forwarded-Host": "evil.com" } });
 await t("cache-2 scheme", "/lab/cache-2", { headers: { "X-Forwarded-Scheme": "http" } });

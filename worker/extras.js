@@ -781,12 +781,14 @@ const hostLabs = {
   // password reset poisoning via Host header
   async reset(req, url, ctx) {
     const host = req.headers.get('host') || url.host;
+    const xfh = req.headers.get('x-forwarded-host') || '';
+    const poisoned = (host && host !== url.host) ? host : (xfh && xfh !== url.host ? xfh : '');
     const card = `<div class="card"><h3>Forgot password</h3>
-      <p class="muted">POST <span class="mono">/lab/host-1/reset?username=carlos</span>. The reset link is built from the <b>Host</b> header — poison it to hijack the reset.</p>
+      <p class="muted">POST <span class="mono">/lab/host-1/reset?username=carlos</span>. The reset link is built from the <b>Host</b> header — poison it (a front-end proxy may forward it as <span class="mono">X-Forwarded-Host</span>) to hijack the reset.</p>
       <form method="post"><input type="text" name="username" value="carlos"><button>Reset password</button></form></div>`;
     if (req.method !== 'POST') return { body: page(card) };
-    const solved = host !== url.host;
-    const link = `https://${host}/reset?token=3a2b1c9d`;
+    const solved = !!poisoned;
+    const link = `https://${poisoned || url.host}/reset?token=3a2b1c9d`;
     return { body: page(card + (solved ? ok('Reset link sent to attacker-controlled host: ' + h(link)) : ok('Reset link sent: ' + h(link)))), solved };
   },
   // password reset poisoning via X-Forwarded-Host (host header trusted by proxy)
@@ -803,12 +805,15 @@ const hostLabs = {
   // Host validation bypass via userinfo (@) injection
   async bypass(req, url, ctx) {
     const host = req.headers.get('host') || url.host;
+    const xfh = req.headers.get('x-forwarded-host') || '';
+    const poisoned = (host && host !== url.host && host.endsWith(url.host)) ? host
+      : (xfh && xfh !== url.host && xfh.endsWith(url.host) ? xfh : '');
     const card = `<div class="card"><h3>Forgot password</h3>
       <p class="muted">The server validates the Host ends with the site hostname, but accepts an attacker prefix separated by <span class="mono">@</span>: <span class="mono">Host: evil.com@${h(url.host)}</span></p>
       <form method="post"><input type="text" name="username" value="carlos"><button>Reset password</button></form></div>`;
     if (req.method !== 'POST') return { body: page(card) };
-    const solved = host !== url.host && host.endsWith(url.host) && /[@/\\]/.test(host);
-    const link = `https://${host}/reset?token=9d1c5f2a`;
+    const solved = !!poisoned && /[@/\\]/.test(poisoned);
+    const link = `https://${poisoned || url.host}/reset?token=9d1c5f2a`;
     return { body: page(card + (solved ? ok('Validation bypassed — reset link: ' + h(link)) : ok('Reset link sent: ' + h(link)))), solved };
   }
 };
