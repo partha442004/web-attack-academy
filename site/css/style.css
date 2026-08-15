@@ -60,6 +60,7 @@ body {
   font-size: 13px;
 }
 .btn-sm { padding: 6px 10px; }
+.toolbar-spacer { flex: 1; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 24px; }
 .grid {
   display: grid;

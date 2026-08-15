@@ -1,9 +1,22 @@
 // Dashboard logic — loads labs.json, renders topic cards, tracks solved labs.
 (function () {
   const state = { solved: new Set(), data: null, filters: { q: '', diff: '', status: '' } };
+  const LS_KEY = 'waa-solved';
 
   function api(url) {
     return fetch(url, { credentials: 'include' }).then(r => r.json()).catch(() => ({ solved: false }));
+  }
+
+  function loadLocalSolved() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      return new Set(Array.isArray(arr) ? arr.filter(x => typeof x === 'string') : []);
+    } catch (e) { return new Set(); }
+  }
+  function saveLocalSolved() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify([...state.solved])); } catch (e) {}
   }
 
   async function loadSolved() {
@@ -11,11 +24,49 @@
     const ids = Object.keys(state.data.labs);
     // status endpoint returns solved state per lab via the session cookie
     const results = await Promise.all(ids.map(id => api(CONFIG.API_BASE + '/api/status/' + id)));
+    const local = loadLocalSolved();
     state.solved.clear();
-    ids.forEach((id, i) => { if (results[i] && results[i].solved) state.solved.add(id); });
+    ids.forEach((id, i) => { if ((results[i] && results[i].solved) || local.has(id)) state.solved.add(id); });
+    saveLocalSolved();
     render();
     updateProgress();
     renderMastery();
+  }
+
+  function exportProgress() {
+    const blob = new Blob([JSON.stringify({
+      app: 'web-attack-academy',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      solved: [...state.solved].sort()
+    }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'waa-progress.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function importProgress(file) {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      let data;
+      try { data = JSON.parse(reader.result); } catch (e) { alert('Invalid progress file.'); return; }
+      const ids = (data && Array.isArray(data.solved)) ? data.solved.filter(x => typeof x === 'string') : [];
+      ids.forEach(id => state.solved.add(id));
+      saveLocalSolved();
+      try {
+        await fetch(CONFIG.API_BASE + '/api/mark-many', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids })
+        });
+      } catch (e) { /* worker down; local cache still updated */ }
+      render();
+      updateProgress();
+      renderMastery();
+    };
+    reader.readAsText(file);
   }
 
   function updateProgress() {
@@ -148,6 +199,12 @@
       document.getElementById('f-diff').value = '';
       document.getElementById('f-status').value = '';
       render();
+    });
+    document.getElementById('btn-export').addEventListener('click', exportProgress);
+    document.getElementById('btn-import').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) importProgress(f);
+      e.target.value = '';
     });
   }
 

@@ -1077,6 +1077,17 @@ export default {
       const sid = markSolved(request, mk[1]);
       return new Response(JSON.stringify({ solved: true }), { headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': cookieSet(sid) }) });
     }
+    // ---- API: bulk mark solved (progress import) ----
+    if (url.pathname === '/api/mark-many' && request.method === 'POST') {
+      let ids = [];
+      try { ids = (await request.json()).ids || []; } catch (e) { /* malformed body */ }
+      if (!Array.isArray(ids)) ids = [];
+      let sid = sessionIdFrom(request);
+      if (!sid) { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); }
+      const s = getSession(sid);
+      ids.forEach(x => { if (typeof x === 'string') s.solved.add(x); });
+      return new Response(JSON.stringify({ marked: s.solved.size }), { headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': cookieSet(sid) }) });
+    }
     // ---- API: request inspector (echo what the server actually received) ----
     if (url.pathname === '/api/reqinfo') {
       const hdrs = {};

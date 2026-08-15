@@ -23,6 +23,11 @@
     pill.className = 'pill solved';
     document.getElementById('solved-banner').style.display = 'block';
     document.getElementById('btn-open').textContent = '✔ Solved — open in new tab';
+    try {
+      const raw = localStorage.getItem('waa-solved');
+      const arr = raw ? JSON.parse(raw) : [];
+      if (!arr.includes(id)) { arr.push(id); localStorage.setItem('waa-solved', JSON.stringify(arr)); }
+    } catch (e) { /* localStorage unavailable */ }
   }
 
   async function checkStatus() {
