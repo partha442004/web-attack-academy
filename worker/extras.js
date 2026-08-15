@@ -716,7 +716,7 @@ const crypto = {
     let sigOk = false;
     if (parts.length === 3) {
       try {
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+        const payload = JSON.parse(b64url.toStr(parts[1]));
         role = payload.role || '';
         const secret = 'supersecret';
         sigOk = md5Hex(secret + parts[1]) === parts[2];
@@ -1050,14 +1050,32 @@ INSERT INTO users (username, password_md5) VALUES ('admin','5f4dcc3b5aa765d61d83
 // ============================================================
 //  JWT (JSON Web Tokens)
 // ============================================================
+// Portable base64url (Workers Buffer does not support 'base64url' encoding).
+const b64url = {
+  fromBytes(buf) {
+    const u = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+    let bin = '';
+    for (let i = 0; i < u.length; i++) bin += String.fromCharCode(u[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  },
+  fromStr(s) { return b64url.fromBytes(new TextEncoder().encode(s)); },
+  toStr(s) {
+    try {
+      const b = atob(s.replace(/-/g, '+').replace(/_/g, '/'));
+      const u = new Uint8Array(b.length);
+      for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+      return new TextDecoder().decode(u);
+    } catch (e) { return ''; }
+  }
+};
 const jwtLabs = {
-  enc(obj) { return Buffer.from(JSON.stringify(obj)).toString('base64url'); },
-  dec(s) { try { return JSON.parse(Buffer.from(s, 'base64url').toString('utf8')); } catch (e) { return null; } },
+  enc(obj) { return b64url.fromStr(JSON.stringify(obj)); },
+  dec(s) { try { return JSON.parse(b64url.toStr(s)); } catch (e) { return null; } },
   async hmac(secret, data) {
     const enc = new TextEncoder();
     const key = await globalThis.crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     const sig = await globalThis.crypto.subtle.sign('HMAC', key, enc.encode(data));
-    return Buffer.from(sig).toString('base64url');
+    return b64url.fromBytes(sig);
   },
   token(req) {
     return (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim()
@@ -1096,7 +1114,7 @@ const jwtLabs = {
         role = pay.role || '';
         if (alg === 'RS256') {
           // real verify would use the RSA public key; here we trust an "encrypted" token if it round-trips
-          valid = parts[2] === Buffer.from(PUBLIC_KEY.split('').reverse().join('')).toString('base64url');
+          valid = parts[2] === b64url.fromStr(PUBLIC_KEY.split('').reverse().join(''));
         } else if (alg === 'HS256') {
           // FLAW: verifies with the public key as the HMAC secret
           valid = parts[2] === await jwtLabs.hmac(PUBLIC_KEY, `${parts[0]}.${parts[1]}`);
