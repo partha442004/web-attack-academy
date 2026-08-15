@@ -322,3 +322,19 @@ body {
   font-size: 13px; cursor: pointer; text-align: center;
 }
 .auth-link:hover { text-decoration: underline; }
+
+.gate {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 50vh; padding: 40px 16px;
+}
+.gate-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  width: 100%; max-width: 420px;
+  padding: 32px 28px;
+  text-align: center;
+}
+.gate-card h1 { margin: 0 0 10px; font-size: 22px; }
+.gate-card p { margin: 0 0 20px; font-size: 14px; color: var(--muted); line-height: 1.5; }

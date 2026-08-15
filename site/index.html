@@ -16,6 +16,14 @@
     </div>
   </div>
   <div class="wrap">
+    <div id="gate" class="gate" style="display:none">
+      <div class="gate-card">
+        <h1>Web Attack Academy</h1>
+        <p>Sign in or create an account to access the practicals.</p>
+        <button class="btn primary" id="gate-signin">Sign in</button>
+      </div>
+    </div>
+    <div id="app-content" style="display:none">
     <div id="mastery" class="mastery" style="display:none"></div>
     <div class="toolbar">
       <input type="search" id="search" class="search" placeholder="Search labs, topics, objectives…" autocomplete="off">
@@ -28,7 +36,8 @@
       <button id="btn-reset-progress" class="btn gray btn-sm" title="Reset your saved progress" style="display:none">Reset progress</button>
     </div>
     <div id="grid" class="grid"></div>
-    <p class="muted" style="margin-top:16px">Labs run inside a sandboxed Cloudflare Worker so it is safe to practice 24/7 from anywhere. Solve a lab → the server marks it complete for your session.</p>
+    <p class="muted" style="margin-top:16px">Labs run inside a sandboxed Cloudflare Worker so it is safe to practice 24/7 from anywhere. Solve a lab → the server marks it complete for your account.</p>
+    </div>
   </div>
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>

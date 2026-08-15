@@ -180,5 +180,19 @@
     });
   });
 
-  boot();
+  // Labs require sign-in. If no session, send the user to the dashboard gate.
+  let booted = false;
+  function tryBoot() {
+    if (booted) return;
+    if (window.Auth && Auth.user) { booted = true; boot(); }
+  }
+  function requireAuth() {
+    if (!window.Auth) { tryBoot(); return; }
+    if (Auth.user) { tryBoot(); return; }
+    Auth.onChange(({ user }) => {
+      if (user) tryBoot();
+      else if (!booted) window.location.replace('index.html');
+    });
+  }
+  requireAuth();
 })();

@@ -51,7 +51,20 @@
 
   function setupAuth() {
     const btn = document.getElementById('btn-reset-progress');
+    const gate = document.getElementById('gate');
+    const appContent = document.getElementById('app-content');
+    const gateBtn = document.getElementById('gate-signin');
+    if (gateBtn) gateBtn.addEventListener('click', () => { if (window.Auth) Auth.openModal(); });
+
+    const applyGate = (user) => {
+      const showLabs = !!user;
+      if (gate) gate.style.display = showLabs ? 'none' : '';
+      if (appContent) appContent.style.display = showLabs ? '' : 'none';
+      if (btn) btn.style.display = showLabs ? '' : 'none';
+    };
+
     const update = ({ user }) => {
+      applyGate(user);
       if (btn) btn.style.display = user ? '' : 'none';
     };
     if (window.Auth) {
@@ -63,6 +76,8 @@
           await loadSolved();
         }
       });
+    } else {
+      applyGate(false);
     }
     if (btn) btn.addEventListener('click', async () => {
       if (!window.Auth || !Auth.user) return;
