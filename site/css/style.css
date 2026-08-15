@@ -69,6 +69,36 @@ body {
 .lab-item .diff { font-size: 11px; color: var(--muted); }
 .lab-item.solved-title .title { text-decoration: line-through; color: var(--muted); }
 
+.topic-progress { height: 4px; background: #eef1f4; }
+.topic-progress-fill { height: 100%; transition: width .3s; }
+
+/* Mastery dashboard */
+.mastery {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin-bottom: 20px;
+}
+.m-overall { display: flex; gap: 18px; align-items: center; margin-bottom: 14px; }
+.m-score { text-align: center; padding-right: 18px; border-right: 1px solid var(--border); }
+.m-big { font-size: 34px; font-weight: 800; color: var(--accent); line-height: 1; }
+.m-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }
+.m-detail { flex: 1; }
+.m-statline { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.m-statline strong { color: var(--text); }
+.m-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.m-col h4 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.m-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; font-size: 13px; }
+.m-topic { width: 168px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.m-bar { flex: 1; height: 10px; background: #eef1f4; border-radius: 5px; overflow: hidden; min-width: 40px; }
+.m-bar.big { height: 12px; }
+.m-fill { height: 100%; border-radius: 5px; transition: width .3s; }
+.m-num { width: 58px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (max-width: 720px) { .m-cols { grid-template-columns: 1fr; } .m-topic { width: 120px; } }
+
 .btn {
   background: var(--accent);
   color: #fff;
@@ -132,6 +162,20 @@ body {
 }
 .hint-box code, .objective code { background: #eff2f5; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
 
+.hint-wrap { margin-top: 12px; }
+.hint-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.hint-btn { font-size: 13px; padding: 6px 12px; }
+.hint-btn.active { background: var(--accent); }
+.hint-btn.used { opacity: 0.75; }
+.hint-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
 .lab-frame {
   width: 100%;
   height: 640px;
@@ -156,7 +200,36 @@ body {
 .console .req { color: #79c0ff; }
 .console .solved { color: #56d364; font-weight: 700; }
 
+/* Request inspector */
+.req-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.ri-method {
+  width: 96px; background: #0d1117; color: #79c0ff;
+  border: 1px solid var(--border); border-radius: 6px; padding: 8px;
+  font-family: 'Cascadia Code', Consolas, monospace; font-size: 13px;
+}
+.ri-path {
+  flex: 1; min-width: 220px; padding: 8px 10px; font-size: 14px;
+  border: 1px solid var(--border); border-radius: 6px; font-family: Consolas, monospace;
+}
+.req-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.req-col { display: flex; flex-direction: column; }
+.req-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.req-label code, .req-label .muted { font-weight: 400; }
+.ri-textarea {
+  font-family: 'Cascadia Code', Consolas, monospace; font-size: 13px;
+  border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+  resize: vertical; line-height: 1.5;
+}
+.req-out {
+  background: #0d1117; color: #c9d1d9;
+  font-family: 'Cascadia Code', Consolas, monospace; font-size: 12.5px;
+  padding: 12px 14px; border-radius: 6px;
+  max-height: 340px; overflow: auto; white-space: pre-wrap; word-break: break-all;
+  margin: 0;
+}
+
 @media (max-width: 700px) {
   .lab-frame { height: 480px; }
   .grid { grid-template-columns: 1fr; }
+  .req-cols { grid-template-columns: 1fr; }
 }

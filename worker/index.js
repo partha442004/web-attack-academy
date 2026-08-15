@@ -1057,7 +1057,7 @@ export default {
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Cookie, X-Forwarded-For, X-Forwarded-Host, X-Forwarded-Scheme, Host, Origin, Referer, stayLoggedIn, userId, Authorization',
-      'Access-Control-Expose-Headers': 'x-lab-solved, Set-Cookie',
+      'Access-Control-Expose-Headers': 'x-lab-solved, Set-Cookie, Location, Content-Type, Date, Server',
       'Cache-Control': 'no-store',
       ...extra
     });
@@ -1076,6 +1076,18 @@ export default {
     if (mk) {
       const sid = markSolved(request, mk[1]);
       return new Response(JSON.stringify({ solved: true }), { headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': cookieSet(sid) }) });
+    }
+    // ---- API: request inspector (echo what the server actually received) ----
+    if (url.pathname === '/api/reqinfo') {
+      const hdrs = {};
+      for (const [k, v] of request.headers.entries()) hdrs[k] = v;
+      return new Response(JSON.stringify({
+        method: request.method,
+        path: url.pathname,
+        query: url.search,
+        ip: request.headers.get('CF-Connecting-IP') || '',
+        headers: hdrs
+      }), { headers: cors({ 'Content-Type': 'application/json' }) });
     }
     // ---- robots.txt ----
     if (url.pathname.endsWith('/robots.txt')) {

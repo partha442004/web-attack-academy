@@ -21,10 +21,14 @@
       <div class="card">
         <h3>Objective</h3>
         <div class="objective" id="lab-objective"></div>
-        <details>
-          <summary style="cursor:pointer;margin-top:12px;color:#0969da;font-weight:600">💡 Hint</summary>
-          <div class="hint-box" id="lab-hint"></div>
-        </details>
+        <div class="hint-wrap">
+          <div class="hint-btns">
+            <button class="btn gray hint-btn" id="hint-0">Hint 1</button>
+            <button class="btn gray hint-btn" id="hint-1">Hint 2</button>
+            <button class="btn gray hint-btn" id="hint-2">Solution</button>
+          </div>
+          <div class="hint-box" id="lab-hint" style="display:none"></div>
+        </div>
       </div>
       <div class="actions" style="margin-bottom:12px">
         <button class="btn" id="btn-reload">↻ Reload lab</button>
@@ -36,6 +40,30 @@
     <iframe class="lab-frame" id="lab-frame" title="Lab" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
 
     <div class="card" style="margin-top:16px">
+      <h3>Request inspector</h3>
+      <p class="muted">Craft a raw request to the lab backend and inspect the full request/response — useful for header-based labs (Host, X-Forwarded-Host, X-Forwarded-Proto, redirects).</p>
+      <div class="req-row">
+        <select id="ri-method" class="ri-method">
+          <option>GET</option><option>POST</option><option>PUT</option>
+          <option>DELETE</option><option>OPTIONS</option><option>HEAD</option>
+        </select>
+        <input id="ri-path" class="ri-path" type="text" spellcheck="false" placeholder="/lab/sqli-1">
+        <button class="btn" id="ri-send">Send</button>
+      </div>
+      <div class="req-cols">
+        <div class="req-col">
+          <div class="req-label">Headers <span class="muted">(one per line, <code>Name: value</code>)</span></div>
+          <textarea id="ri-headers" class="ri-textarea" rows="7" spellcheck="false" placeholder="X-Forwarded-Host: evil.com&#10;X-Forwarded-Proto: http"></textarea>
+        </div>
+        <div class="req-col">
+          <div class="req-label">Body <span class="muted">(optional)</span></div>
+          <textarea id="ri-body" class="ri-textarea" rows="7" spellcheck="false" placeholder="username=admin&amp;password=secret"></textarea>
+        </div>
+      </div>
+      <pre class="req-out" id="ri-out">→ Send a request to see the raw response here.</pre>
+    </div>
+
+    <div class="card">
       <h3>Request console</h3>
       <div class="console" id="console">→ Waiting for solve / lab messages…</div>
     </div>

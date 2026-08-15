@@ -15,6 +15,7 @@
     ids.forEach((id, i) => { if (results[i] && results[i].solved) state.solved.add(id); });
     render();
     updateProgress();
+    renderMastery();
   }
 
   function updateProgress() {
@@ -22,6 +23,67 @@
     const done = state.solved.size;
     const el = document.getElementById('global-progress');
     if (el) el.innerHTML = `<strong>${done}</strong> / ${total} solved`;
+  }
+
+  function renderMastery() {
+    const host = document.getElementById('mastery');
+    if (!host) return;
+    const labs = state.data.labs;
+    const topics = state.data.topics;
+    const total = Object.keys(labs).length;
+    const done = state.solved.size;
+    const pct = total ? Math.round(done / total * 100) : 0;
+
+    // difficulty breakdown: solved per difficulty level
+    const diff = [0, 0, 0, 0, 0, 0];       // total per level (idx 1..5)
+    const diffSolved = [0, 0, 0, 0, 0, 0];
+    for (const id of Object.keys(labs)) {
+      const lv = Math.max(1, Math.min(5, labs[id].difficulty || 1));
+      diff[lv]++; if (state.solved.has(id)) diffSolved[lv]++;
+    }
+    const maxLevel = diffSolved.slice(1).reduce((acc, n, i) => n > 0 ? i + 1 : acc, 0);
+
+    // topics
+    const topicRows = topics.map(t => {
+      const d = t.labs.filter(id => state.solved.has(id)).length;
+      const tPct = t.labs.length ? Math.round(d / t.labs.length * 100) : 0;
+      return `<div class="m-row">
+        <span class="m-topic" style="color:${t.color}"><span class="m-dot" style="background:${t.color}"></span>${t.name}</span>
+        <div class="m-bar"><div class="m-fill" style="width:${tPct}%;background:${t.color}"></div></div>
+        <span class="m-num">${d}/${t.labs.length}</span>
+      </div>`;
+    }).join('');
+
+    host.style.display = 'block';
+    host.innerHTML = `
+      <div class="m-overall">
+        <div class="m-score">
+          <div class="m-big">${pct}%</div>
+          <div class="m-label">Mastery</div>
+        </div>
+        <div class="m-detail">
+          <div class="m-statline">
+            <span><strong>${done}</strong>/<strong>${total}</strong> labs solved</span>
+            <span>Highest difficulty solved: <strong>${maxLevel || '—'}</strong></span>
+          </div>
+          <div class="m-bar big"><div class="m-fill" style="width:${pct}%;background:var(--accent)"></div></div>
+        </div>
+      </div>
+      <div class="m-cols">
+        <div class="m-col">
+          <h4>By topic</h4>
+          ${topicRows || '<div class="muted">No topics.</div>'}
+        </div>
+        <div class="m-col">
+          <h4>By difficulty</h4>
+          ${[1, 2, 3, 4, 5].map(lv => diff[lv] ? `
+            <div class="m-row">
+              <span class="m-topic">${'●'.repeat(lv)}${'○'.repeat(5 - lv)}</span>
+              <div class="m-bar"><div class="m-fill" style="width:${Math.round(diffSolved[lv] / diff[lv] * 100)}%;background:var(--accent)"></div></div>
+              <span class="m-num">${diffSolved[lv]}/${diff[lv]}</span>
+            </div>` : '').join('')}
+        </div>
+      </div>`;
   }
 
   function render() {
@@ -36,6 +98,7 @@
           <h2>${topic.name}</h2>
           <span class="count">${doneInTopic}/${topic.labs.length}</span>
         </div>
+        <div class="topic-progress"><div class="topic-progress-fill" style="width:${topic.labs.length ? Math.round(doneInTopic / topic.labs.length * 100) : 0}%;background:${topic.color}"></div></div>
         <div class="lab-list">${topic.labs.map(id => {
           const lab = state.data.labs[id];
           const solved = state.solved.has(id);
