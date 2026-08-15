@@ -94,6 +94,21 @@
     });
   }
 
+  function setupTheme() {
+    const btn = document.getElementById('theme-toggle');
+    const apply = (dark) => {
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      btn.textContent = dark ? '☀️ Light' : '🌙 Dark';
+    };
+    btn.addEventListener('click', () => {
+      const dark = document.documentElement.dataset.theme !== 'dark';
+      apply(dark);
+      localStorage.setItem('waa-theme', dark ? 'dark' : 'light');
+    });
+    apply(localStorage.getItem('waa-theme') === 'dark');
+  }
+  setupTheme();
+
   document.getElementById('btn-reload').addEventListener('click', () => {
     frame.dataset.path = CONFIG.API_BASE + '/lab/' + id;
     loadLab();
