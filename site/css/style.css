@@ -692,3 +692,45 @@ body {
   flex-shrink: 0;
   border: 1px solid rgba(128,128,128,.4);
 }
+
+/* ==================== THEME DECORATIONS ==================== */
+/* Mascot in topbar - swaps per theme */
+.mascot { display:inline-block; font-size:20px; margin-right:6px; vertical-align:-2px; animation: mascot-bob 3s ease-in-out infinite; }
+.mascot::before { content: '🐣'; } /* light default */
+:root[data-theme="dark"] .mascot::before { content: '🌙'; }
+:root[data-theme="sakura"] .mascot::before { content: '🌸'; }
+:root[data-theme="dracula"] .mascot::before { content: '🧛'; }
+:root[data-theme="nord"] .mascot::before { content: '❄️'; }
+:root[data-theme="solarized"] .mascot::before { content: '🌅'; }
+:root[data-theme="cyberpunk"] .mascot::before { content: '⚡'; }
+:root[data-theme="forest"] .mascot::before { content: '🌲'; }
+:root[data-theme="midnight"] .mascot::before { content: '🌌'; }
+:root[data-theme="tokyo"] .mascot::before { content: '🌃'; }
+
+@keyframes mascot-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+/* Floating background decorations - subtle theme-aware emoji */
+.deco-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.deco-bg span { position: absolute; opacity: .07; font-size: 72px; animation: deco-float 8s ease-in-out infinite; }
+.deco-bg span::before { content: '⭐'; } /* light default */
+.d1 { top: 12%; left: 5%; }
+.d2 { top: 60%; right: 6%; animation-delay: 1.2s; }
+.d3 { bottom: 10%; left: 12%; animation-delay: 2.4s; }
+.d4 { top: 30%; right: 22%; animation-delay: 3.1s; }
+.d5 { bottom: 28%; right: 14%; animation-delay: .6s; }
+
+@keyframes deco-float { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-16px) rotate(6deg); } }
+
+/* Per-theme background emoji sets */
+:root[data-theme="dark"] .d1::before { content: '🌙'; } :root[data-theme="dark"] .d2::before { content: '⭐'; } :root[data-theme="dark"] .d3::before { content: '✨'; } :root[data-theme="dark"] .d4::before { content: '🌃'; } :root[data-theme="dark"] .d5::before { content: '🌟'; }
+:root[data-theme="sakura"] .d1::before { content: '🌸'; } :root[data-theme="sakura"] .d2::before { content: '🌺'; } :root[data-theme="sakura"] .d3::before { content: '🎀'; } :root[data-theme="sakura"] .d4::before { content: '🍡'; } :root[data-theme="sakura"] .d5::before { content: '🌸'; }
+:root[data-theme="dracula"] .d1::before { content: '🧛'; } :root[data-theme="dracula"] .d2::before { content: '🦇'; } :root[data-theme="dracula"] .d3::before { content: '🕸️'; } :root[data-theme="dracula"] .d4::before { content: '💜'; } :root[data-theme="dracula"] .d5::before { content: '🩸'; }
+:root[data-theme="nord"] .d1::before { content: '❄️'; } :root[data-theme="nord"] .d2::before { content: '⛄'; } :root[data-theme="nord"] .d3::before { content: '🌨️'; } :root[data-theme="nord"] .d4::before { content: '🏔️'; } :root[data-theme="nord"] .d5::before { content: '🧊'; }
+:root[data-theme="solarized"] .d1::before { content: '🌅'; } :root[data-theme="solarized"] .d2::before { content: '🌊'; } :root[data-theme="solarized"] .d3::before { content: '🐚'; } :root[data-theme="solarized"] .d4::before { content: '☀️'; } :root[data-theme="solarized"] .d5::before { content: '🏖️'; }
+:root[data-theme="cyberpunk"] .d1::before { content: '⚡'; } :root[data-theme="cyberpunk"] .d2::before { content: '🤖'; } :root[data-theme="cyberpunk"] .d3::before { content: '🛸'; } :root[data-theme="cyberpunk"] .d4::before { content: '💾'; } :root[data-theme="cyberpunk"] .d5::before { content: '🚀'; }
+:root[data-theme="forest"] .d1::before { content: '🌲'; } :root[data-theme="forest"] .d2::before { content: '🍄'; } :root[data-theme="forest"] .d3::before { content: '🦉'; } :root[data-theme="forest"] .d4::before { content: '🦌'; } :root[data-theme="forest"] .d5::before { content: '🍃'; }
+:root[data-theme="midnight"] .d1::before { content: '🌌'; } :root[data-theme="midnight"] .d2::before { content: '🌠'; } :root[data-theme="midnight"] .d3::before { content: '✨'; } :root[data-theme="midnight"] .d4::before { content: '🌙'; } :root[data-theme="midnight"] .d5::before { content: '🔭'; }
+:root[data-theme="tokyo"] .d1::before { content: '🌃'; } :root[data-theme="tokyo"] .d2::before { content: '🗼'; } :root[data-theme="tokyo"] .d3::before { content: '🏮'; } :root[data-theme="tokyo"] .d4::before { content: '🍜'; } :root[data-theme="tokyo"] .d5::before { content: '⛩️'; }
+
+/* Ensure content sits above deco layer */
+.topbar, .wrap { position: relative; z-index: 1; }
