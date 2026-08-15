@@ -81,8 +81,10 @@ async function getSession(id) {
   if (!id) return null;
   let s = await store.read('session:' + id, null);
   if (!s) { s = { solved: [], exp: sessionExpiry() }; await store.writeTtl('session:' + id, s, SESSION_TTL_MS / 1000); return s; }
-  // Expired session -> drop it (KV TTL removes it server-side; mem fallback checks exp)
-  if (s.exp && Date.now() > s.exp) {
+  // Expired session -> drop it (KV TTL removes it server-side; mem fallback checks exp).
+  // A missing exp means a pre-TTL legacy session with no server-side expiry — treat it
+  // as expired so it is dropped and recreated with a TTL instead of lingering forever.
+  if (!s.exp || Date.now() > s.exp) {
     await store.del('session:' + id);
     return null;
   }
