@@ -23,8 +23,33 @@
         <span class="pill unsolved" id="lab-pill">UNSOLVED</span>
       </div>
       <div class="solved-banner" id="solved-banner">✔ Lab solved! Nice work.</div>
+
+      <!-- Lab metadata bar -->
+      <div class="lab-meta" id="lab-meta" style="display:none">
+        <div class="meta-tags" id="lab-tags"></div>
+        <div class="meta-info">
+          <span id="lab-time" class="meta-item">⏱ ~10 min</span>
+          <span id="lab-prereqs" class="meta-item" style="display:none">🔗 Prereqs: <a id="lab-prereq-links"></a></span>
+        </div>
+      </div>
+
+      <!-- Step tracker -->
+      <div class="step-tracker" id="step-tracker" style="display:none" role="progressbar" aria-label="Lab progress">
+        <div class="step" data-step="1"><span class="step-num">1</span><span class="step-label">Recon</span></div>
+        <div class="step" data-step="2"><span class="step-num">2</span><span class="step-label">Exploit</span></div>
+        <div class="step" data-step="3"><span class="step-num">3</span><span class="step-label">Verify</span></div>
+        <div class="step" data-step="4"><span class="step-num">4</span><span class="step-label">Mitigate</span></div>
+      </div>
+
       <div class="card">
-        <h3>Objective</h3>
+        <div class="card-header">
+          <h3>Objective</h3>
+          <div class="card-actions">
+            <button class="btn gray btn-sm" id="btn-cheatsheet" title="Cheatsheet (C)">📋 Cheatsheet</button>
+            <button class="btn gray btn-sm" id="btn-history" title="Request History (H)">🕘 History</button>
+            <button class="btn gray btn-sm" id="btn-shortcuts" title="Shortcuts (?)">⌨️ Shortcuts</button>
+          </div>
+        </div>
         <div class="objective" id="lab-objective"></div>
         <div class="hint-wrap">
           <div class="hint-btns">
@@ -35,6 +60,7 @@
           <div class="hint-box" id="lab-hint" style="display:none"></div>
         </div>
       </div>
+
       <div class="actions" style="margin-bottom:12px">
         <button class="btn" id="btn-reload">↻ Reload lab</button>
         <a class="btn gray" id="btn-open" href="#" target="_blank" rel="noopener">Open lab in new tab</a>
@@ -45,7 +71,13 @@
     <iframe class="lab-frame" id="lab-frame" title="Lab" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
 
     <div class="card" style="margin-top:16px">
-      <h3>Request inspector</h3>
+      <div class="card-header">
+        <h3>Request inspector</h3>
+        <div class="card-actions">
+          <button class="btn gray btn-sm" id="ri-copy-curl">📋 Copy as cURL</button>
+          <button class="btn gray btn-sm" id="ri-copy-fetch">📋 Copy as fetch</button>
+        </div>
+      </div>
       <p class="muted">Craft a raw request to the lab backend and inspect the full request/response — useful for header-based labs (Host, X-Forwarded-Host, X-Forwarded-Proto, redirects).</p>
       <div class="req-row">
         <select id="ri-method" class="ri-method">
@@ -62,7 +94,7 @@
         </div>
         <div class="req-col">
           <div class="req-label">Body <span class="muted">(optional)</span></div>
-          <textarea id="ri-body" class="ri-textarea" rows="7" spellcheck="false" placeholder="username=admin&amp;password=secret"></textarea>
+          <textarea id="ri-body" class="ri-textarea" rows="7" spellcheck="false" placeholder="username=admin&password=secret"></textarea>
         </div>
       </div>
       <pre class="req-out" id="ri-out">→ Send a request to see the raw response here.</pre>
@@ -72,7 +104,70 @@
       <h3>Request console</h3>
       <div class="console" id="console">→ Waiting for solve / lab messages…</div>
     </div>
+
+    <!-- Related labs -->
+    <div class="card" id="related-card" style="display:none; margin-top:16px">
+      <h3>🔗 Related labs</h3>
+      <div id="related-labs" class="related-grid"></div>
+    </div>
   </div>
+
+  <!-- Cheatsheet slide-out panel -->
+  <aside class="slide-panel" id="cheatsheet-panel" role="dialog" aria-label="Cheatsheet" aria-hidden="true">
+    <div class="slide-header">
+      <h3>📋 Cheatsheet</h3>
+      <button class="slide-close" id="cheatsheet-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="slide-body" id="cheatsheet-body"></div>
+  </aside>
+
+  <!-- Request history slide-out panel -->
+  <aside class="slide-panel" id="history-panel" role="dialog" aria-label="Request history" aria-hidden="true">
+    <div class="slide-header">
+      <h3>🕘 Request history</h3>
+      <button class="slide-close" id="history-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="slide-body" id="history-body">
+      <p class="muted" id="history-empty">No requests yet.</p>
+    </div>
+  </aside>
+
+  <!-- Shortcuts modal -->
+  <div class="modal-overlay" id="shortcuts-modal" role="dialog" aria-label="Keyboard shortcuts" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>⌨️ Keyboard shortcuts</h3>
+        <button class="modal-close" id="shortcuts-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <table class="shortcuts-table">
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Send request</td></tr>
+            <tr><td><kbd>C</kbd></td><td>Open cheatsheet</td></tr>
+            <tr><td><kbd>H</kbd></td><td>Open history</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Show shortcuts</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Reload lab</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Close panel/modal</td></tr>
+            <tr><td><kbd>Tab</kbd></td><td>Next focusable</td></tr>
+            <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Previous focusable</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Solution walkthrough modal -->
+  <div class="modal-overlay" id="solution-modal" role="dialog" aria-label="Solution walkthrough" aria-hidden="true">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h3>✅ Solution walkthrough</h3>
+        <button class="modal-close" id="solution-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="solution-body"></div>
+    </div>
+  </div>
+
   <script src="js/theme.js"></script>
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>

