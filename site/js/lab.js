@@ -441,6 +441,8 @@
       if (user) tryBoot();
       else if (!booted) window.location.replace('index.html');
     });
+    // Also check current state in case notify already fired
+    tryBoot();
   }
   requireAuth();
 })();
