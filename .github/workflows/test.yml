@@ -1,0 +1,25 @@
+name: Test worker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run worker test suite
+        run: |
+          cd worker
+          node test.mjs > test-output.txt 2>&1
+          cat test-output.txt
+          if grep -E "solved=false|Lab error|status=5" test-output.txt; then
+            echo "::error::Test failures detected"
+            exit 1
+          fi
+          echo "::notice::All worker tests passed"
