@@ -1048,6 +1048,137 @@ INSERT INTO users (username, password_md5) VALUES ('admin','5f4dcc3b5aa765d61d83
 };
 
 // ============================================================
+//  JWT (JSON Web Tokens)
+// ============================================================
+const jwtLabs = {
+  enc(obj) { return Buffer.from(JSON.stringify(obj)).toString('base64url'); },
+  dec(s) { try { return JSON.parse(Buffer.from(s, 'base64url').toString('utf8')); } catch (e) { return null; } },
+  async hmac(secret, data) {
+    const enc = new TextEncoder();
+    const key = await globalThis.crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const sig = await globalThis.crypto.subtle.sign('HMAC', key, enc.encode(data));
+    return Buffer.from(sig).toString('base64url');
+  },
+  token(req) {
+    return (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim()
+      || (req.headers.get('cookie') || '').match(/\bjwt=([^;]+)/)?.[1] || '';
+  },
+  // token whose header says alg=none and server never verifies the signature
+  async noneAlg(req, url, ctx) {
+    const parts = jwtLabs.token(req).split('.');
+    let alg = '', role = '';
+    if (parts.length >= 2) {
+      const hdr = jwtLabs.dec(parts[0]);
+      const pay = jwtLabs.dec(parts[1]);
+      if (hdr) alg = hdr.alg || '';
+      if (pay) role = pay.role || '';
+    }
+    const solved = role === 'admin' && alg === 'none';
+    const card = `<div class="card"><h3>JWT demo</h3>
+      <p class="muted">Session token is sent as <span class="mono">Authorization: Bearer &lt;jwt&gt;</span> (or the <span class="mono">jwt</span> cookie). The server trusts whatever <span class="mono">alg</span> the header claims and never verifies the signature.</p>
+      <p>Your token: <b>${h(parts.join('.') || '(none)')}</b> — alg=<b>${h(alg)}</b> role=<b>${h(role)}</b></p></div>`;
+    return { body: page(card + (solved ? ok('Logged in as <b>admin</b> — token with <span class="mono">alg=none</span> accepted.') : err('Access denied.'))), solved };
+  },
+  // algorithm confusion: RS256 expected, but if you send HS256 the server reuses the public key as the HMAC secret
+  async confusion(req, url, ctx) {
+    const PUBLIC_KEY = 'MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK7nZ1qTmFjVq5T0vGfG9l9zK8Vh2uR3Yc4wE2p3oQeNq9iX7lBkRqPZtWdqO2tY8mJ3hBv0dKcA9J4P7wXAqM0Vv7v7tLz';
+    if (ctx === '/jwks') {
+      return { body: page(`<div class="card"><h3>JWKS endpoint</h3>
+        <pre class="mono">${PUBLIC_KEY}</pre></div>`) };
+    }
+    const parts = jwtLabs.token(req).split('.');
+    let alg = '', role = '', valid = false;
+    if (parts.length === 3) {
+      const hdr = jwtLabs.dec(parts[0]);
+      const pay = jwtLabs.dec(parts[1]);
+      if (hdr && pay) {
+        alg = hdr.alg || '';
+        role = pay.role || '';
+        if (alg === 'RS256') {
+          // real verify would use the RSA public key; here we trust an "encrypted" token if it round-trips
+          valid = parts[2] === Buffer.from(PUBLIC_KEY.split('').reverse().join('')).toString('base64url');
+        } else if (alg === 'HS256') {
+          // FLAW: verifies with the public key as the HMAC secret
+          valid = parts[2] === await jwtLabs.hmac(PUBLIC_KEY, `${parts[0]}.${parts[1]}`);
+        }
+      }
+    }
+    const solved = valid && role === 'admin';
+    const card = `<div class="card"><h3>Token service (RS256)</h3>
+      <p class="muted">Issues RS256 tokens. Public key is published at <span class="mono">/lab/jwt-2/jwks</span>. Something about the verify path smells… try sending an <span class="mono">HS256</span> token.</p>
+      <p>alg=<b>${h(alg)}</b> role=<b>${h(role)}</b> signature-ok=<b>${valid ? 'yes' : 'no'}</b></p></div>`;
+    return { body: page(card + (solved ? ok('Admin access granted — HS256 token signed with the RSA <i>public</i> key accepted.') : err('Access denied.'))), solved };
+  },
+  // weak HMAC secret, discoverable from a small wordlist
+  async weakSecret(req, url, ctx) {
+    const SECRET = 'p@ssw0rd-jwt';
+    const parts = jwtLabs.token(req).split('.');
+    let role = '', valid = false;
+    if (parts.length === 3) {
+      const pay = jwtLabs.dec(parts[1]);
+      if (pay) role = pay.role || '';
+      valid = parts[2] === await jwtLabs.hmac(SECRET, `${parts[0]}.${parts[1]}`);
+    }
+    const solved = valid && role === 'admin';
+    const card = `<div class="card"><h3>Auth API</h3>
+      <p class="muted">Tokens are signed with a weak shared secret. Leaked commit shows the secret once lived in the wordlist: <span class="mono">rockyou.txt</span> line ~40 (all-lowercase, contains <span class="mono">jwt</span> and a leetspeak <span class="mono">@</span>).</p>
+      <p>role=<b>${h(role)}</b> signature-ok=<b>${valid ? 'yes' : 'no'}</b></p></div>`;
+    return { body: page(card + (solved ? ok('Admin token verified — weak secret cracked.') : err('Access denied.'))), solved };
+  }
+};
+
+// ============================================================
+//  OAuth 2.0
+// ============================================================
+const oauthLabs = {
+  // redirect_uri check uses startsWith() against the trusted origin -> bypass with an attacker host
+  async redirect(req, url, ctx) {
+    const TRUSTED = 'https://app.academy.local';
+    const ruri = url.searchParams.get('redirect_uri') || '';
+    const state = url.searchParams.get('state') || '';
+    // naive validation: only checks that redirect_uri begins with the trusted origin
+    const okCheck = ruri.startsWith(TRUSTED);
+    const host = (() => { try { return new URL(ruri).host; } catch (e) { return ''; } })();
+    const leaked = okCheck && host && host !== new URL(TRUSTED).host;
+    const solved = leaked && state === 'csrf1';
+    const card = `<div class="card"><h3>OAuth authorization server</h3>
+      <p class="muted">Flow: <span class="mono">GET /lab/oauth-1/authorize?redirect_uri=…&amp;state=…</span>. The server redirects with a <span class="mono">code</span> only when <span class="mono">redirect_uri</span> looks trusted.</p>
+      <p>redirect_uri=<b>${h(ruri)}</b> host=<b>${h(host)}</b> validation-passed=<b>${okCheck ? 'yes' : 'no'}</b></p></div>`;
+    if (solved) {
+      return { body: page(card + ok('Authorization code <span class="mono">6f2a…c91</span> leaked to an attacker-controlled host — <span class="mono">startsWith()</span> validation bypassed.')), solved };
+    }
+    return { body: page(card + (okCheck ? `<p>Redirecting to ${h(ruri)} with code …</p>` : err('Invalid redirect_uri.'))) };
+  },
+  // scope escalation: access token honors scope without checking it was approved
+  async scope(req, url, ctx) {
+    const sc = url.searchParams.get('scope') || '';
+    const approved = ['read:profile', 'read:email'];
+    const escalated = sc.split(' ').some(s => s.startsWith('admin'));
+    const solved = escalated && sc.length > 0;
+    const card = `<div class="card"><h3>OAuth token endpoint</h3>
+      <p class="muted">Request a token: <span class="mono">POST /lab/oauth-2/token?code=…&amp;scope=…</span>. The server never compares the requested scope against what the user approved (<span class="mono">${h(approved.join(' '))}</span>).</p>
+      <p>requested scope=<b>${h(sc || '(none)')}</b></p></div>`;
+    if (solved) {
+      return { body: page(card + ok('Access token issued with <b>admin</b> scope — scope escalation succeeded.')), solved };
+    }
+    return { body: page(card + err('Request a scope to continue.')) };
+  },
+  // account takeover: login trusts the email returned in the callback, which the attacker can control
+  async email(req, url, ctx) {
+    const email = url.searchParams.get('email') || '';
+    const victim = 'bob@academy.local';
+    const solved = email === victim;
+    const card = `<div class="card"><h3>OAuth callback handler</h3>
+      <p class="muted">After <span class="mono">/authorize</span> the provider calls back with a <span class="mono">code</span>, then this app fetches the profile. Note: the callback URL itself carries an <span class="mono">email</span> parameter that the app blindly trusts for the session.</p>
+      <p>email=<b>${h(email || '(none)')}</b></p></div>`;
+    if (solved) {
+      return { body: page(card + ok('Logged in as <b>bob@academy.local</b> — attacker-controlled email parameter accepted for session identity.')), solved };
+    }
+    return { body: page(card + err('Login failed.')) };
+  }
+};
+
+// ============================================================
 //  ROUTES
 // ============================================================
 export const extraRoutes = {
@@ -1104,6 +1235,12 @@ export const extraRoutes = {
   'ws-2': (r, u, c) => ws.send(r, u, c),
   'redirect-1': (r, u, c) => redirectLabs.open(r, u, c),
   'redirect-2': (r, u, c) => redirectLabs.bypass(r, u, c),
+  'jwt-1': (r, u, c) => jwtLabs.noneAlg(r, u, c),
+  'jwt-2': (r, u, c) => jwtLabs.confusion(r, u, c),
+  'jwt-3': (r, u, c) => jwtLabs.weakSecret(r, u, c),
+  'oauth-1': (r, u, c) => oauthLabs.redirect(r, u, c),
+  'oauth-2': (r, u, c) => oauthLabs.scope(r, u, c),
+  'oauth-3': (r, u, c) => oauthLabs.email(r, u, c),
   'info-1': (r, u, c) => info.debug(r, u, c),
   'info-2': (r, u, c) => info.source(r, u, c)
 };

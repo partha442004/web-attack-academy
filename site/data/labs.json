@@ -268,6 +268,26 @@
       ]
     },
     {
+      "id": "jwt",
+      "name": "JWT Attacks",
+      "color": "#c8e1ff",
+      "labs": [
+        "jwt-1",
+        "jwt-2",
+        "jwt-3"
+      ]
+    },
+    {
+      "id": "oauth",
+      "name": "OAuth 2.0",
+      "color": "#ffc8dd",
+      "labs": [
+        "oauth-1",
+        "oauth-2",
+        "oauth-3"
+      ]
+    },
+    {
       "id": "info",
       "name": "Information Disclosure",
       "color": "#fef2c0",
@@ -1472,6 +1492,84 @@
         "Test the redirect target parameter with absolute URLs and parsers tricks (userinfo, schemes).",
         "Use a userinfo trick: …",
         "Use a userinfo trick: <code>?url=https://academy.example@evil.com</code>."
+      ]
+    },
+    "jwt-1": {
+      "title": "JWT — algorithm confusion: none",
+      "topic": "jwt",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "The server trusts whatever <code>alg</code> the JWT header claims and never verifies the signature.",
+      "hint": "Send a token whose header says <code>alg:none</code> and payload <code>role:admin</code>.",
+      "hints": [
+        "The token travels in the <code>Authorization: Bearer</code> header or the <code>jwt</code> cookie.",
+        "Encode <code>{\"alg\":\"none\"}</code> as the header and <code>{\"role\":\"admin\"}</code> as the payload.",
+        "Send a token whose header says <code>alg:none</code> and payload <code>role:admin</code>."
+      ]
+    },
+    "jwt-2": {
+      "title": "JWT — algorithm confusion: HS256",
+      "topic": "jwt",
+      "difficulty": 3,
+      "type": "client",
+      "objective": "The server reuses the RSA <em>public</em> key as the HMAC secret when you switch the algorithm to HS256.",
+      "hint": "Sign an HS256 token using the public key (published at <code>/lab/jwt-2/jwks</code>) as the secret.",
+      "hints": [
+        "Fetch the public key from <code>/lab/jwt-2/jwks</code>.",
+        "Switch <code>alg</code> to HS256 and sign <code>header.payload</code> with the public key as the HMAC key.",
+        "Sign an HS256 token using the public key (published at <code>/lab/jwt-2/jwks</code>) as the secret."
+      ]
+    },
+    "jwt-3": {
+      "title": "JWT — weak signing secret",
+      "topic": "jwt",
+      "difficulty": 3,
+      "type": "client",
+      "objective": "Tokens are signed with a weak shared secret that appears in leaked source history.",
+      "hint": "Brute-force the secret from the wordlist hint (lowercase, contains <code>jwt</code>, has a leetspeak <code>@</code>).",
+      "hints": [
+        "The leaked commit references <code>rockyou.txt</code> line ~40; the secret is all lowercase and contains <code>jwt</code> and <code>@</code>.",
+        "Try <code>p@ssw0rd-jwt</code> as the HMAC-SHA256 secret.",
+        "Brute-force the secret from the wordlist hint (lowercase, contains <code>jwt</code>, has a leetspeak <code>@</code>)."
+      ]
+    },
+    "oauth-1": {
+      "title": "OAuth — redirect_uri validation bypass",
+      "topic": "oauth",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "The authorization server checks <code>redirect_uri</code> with <code>startsWith()</code>, which an attacker-controlled host can bypass.",
+      "hint": "Use <code>state=csrf1</code> and a <code>redirect_uri</code> that starts with the trusted origin but has an attacker host.",
+      "hints": [
+        "The check is <code>startsWith('https://app.academy.local')</code>.",
+        "Craft a URI that passes the prefix check but resolves to a different host, and set <code>state=csrf1</code>.",
+        "Use <code>state=csrf1</code> and a <code>redirect_uri</code> that starts with the trusted origin but has an attacker host."
+      ]
+    },
+    "oauth-2": {
+      "title": "OAuth — scope escalation",
+      "topic": "oauth",
+      "difficulty": 3,
+      "type": "client",
+      "objective": "The token endpoint grants requested scopes without checking they were approved by the user.",
+      "hint": "Request an <code>admin</code>-prefixed scope at the token endpoint.",
+      "hints": [
+        "Approved scopes are <code>read:profile read:email</code> — the server never compares.",
+        "Append <code>scope=admin</code> (or any <code>admin…</code> scope) to the token request.",
+        "Request an <code>admin</code>-prefixed scope at the token endpoint."
+      ]
+    },
+    "oauth-3": {
+      "title": "OAuth — email parameter account takeover",
+      "topic": "oauth",
+      "difficulty": 3,
+      "type": "client",
+      "objective": "The callback handler blindly trusts an <code>email</code> parameter to establish the session.",
+      "hint": "Pass <code>email=bob@academy.local</code> to the callback to log in as Bob.",
+      "hints": [
+        "Inspect the OAuth callback URL — it carries an <code>email</code> parameter.",
+        "The app uses that email as the session identity without verifying the provider profile.",
+        "Pass <code>email=bob@academy.local</code> to the callback to log in as Bob."
       ]
     },
     "info-1": {
