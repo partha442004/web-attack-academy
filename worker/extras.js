@@ -1007,6 +1007,33 @@ const ws = {
     }
     const list = wsMsgs.length ? wsMsgs.map(m => `<div class="card">${m}</div>`).join('') : '<p class="muted">No messages yet.</p>';
     return { body: page(`<div class="card"><h3>Live chat history</h3>${list}</div>`) };
+  },
+  // missing authorization: connect to the admin channel without admin role
+  async authz(req, url, ctx) {
+    const cookie = req.headers.get('cookie') || '';
+    const isAdmin = /admin=1/.test(cookie) || /role=admin/i.test(cookie);
+    const wantsAdmin = ctx === '/admin' || url.searchParams.get('channel') === 'admin';
+    const solved = wantsAdmin && !isAdmin;
+    return { body: page(`<div class="card"><h3>Admin channel (WebSocket)</h3>
+      <p class="muted">Connect to the admin-only channel with a plain session cookie — the handshake never verifies your role (missing authorization).<br>
+      <span class="mono">GET /lab/ws-3/admin</span> (or <span class="mono">?channel=admin</span>)</p>
+      <p>session: ${/academy_session=/.test(cookie) ? ok('present') : err('missing')} · admin role: ${isAdmin ? ok('yes') : err('no')}</p>
+      ${solved ? ok('Connected to the admin channel without being an admin — missing authorization check.') : ''}</div>`), solved };
+  },
+  // IDOR over WebSocket: action includes an owner field the server trusts
+  async owner(req, url, ctx) {
+    const card = `<div class="card"><h3>Transfer (WebSocket)</h3>
+      <p class="muted">POST <span class="mono">/lab/ws-4/action</span> JSON <span class="mono">{"to":"victim","amount":100,"from":"attacker"}</span>. The server trusts the <span class="mono">from</span> field you send — impersonate another user's account.</p>
+      <form method="post"><input type="text" name="to" placeholder="to"><input type="text" name="amount" placeholder="amount"><button>Send</button></form></div>`;
+    if (req.method === 'POST') {
+      const ct = req.headers.get('content-type') || '';
+      let to = '', amount = '', from = '';
+      if (ct.includes('application/json')) { const b = await json(req); to = b.to || ''; amount = b.amount || ''; from = b.from || ''; }
+      else { const f = await form(req); to = f.to || ''; amount = f.amount || ''; from = f.from || ''; }
+      const impersonated = from && from !== 'attacker' && (to || amount);
+      return { body: page(card + (impersonated ? ok('Transfer executed from <span class="mono">' + h(from) + '</span> — the server trusted your <span class="mono">from</span> field (IDOR over WebSocket).') : ok('Transfer queued.'))), solved: impersonated };
+    }
+    return { body: page(card) };
   }
 };
 
@@ -1228,6 +1255,523 @@ const oauthLabs = {
 };
 
 // ============================================================
+//  LDAP injection
+// ============================================================
+const ldap = {
+  // auth bypass: filter built from user input, wildcard closes the bind
+  async auth(req, url, ctx) {
+    const card = `<div class="card"><h3>LDAP login</h3>
+      <p class="muted">Bind filter: <span class="mono">&amp;(uid=USER)(password=PASS)</span>. The LDAP filter is built from your input with no escaping — inject <span class="mono">*</span> or break out with <span class="mono">*)(uid=*))(|(uid=*</span>.</p>
+      <form method="post"><input type="text" name="username" placeholder="username"><input type="password" name="password" placeholder="password"><button>Login</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const f = await form(req);
+    const u = f.username || '', p = f.password || '';
+    const injected = /[\*\(\)\|&]/.test(u) || /[\*\(\)\|&]/.test(p);
+    const solved = injected;
+    return {
+      body: page(card + (solved ? ok('Bound as the first matching directory entry — LDAP wildcard/operator injection bypassed authentication.') : err('Login failed: invalid credentials.'))),
+      solved
+    };
+  },
+  // blind: boolean search, `*` makes the query match everything
+  async blind(req, url, ctx) {
+    const card = `<div class="card"><h3>Staff directory search</h3>
+      <p class="muted">Searches <span class="mono">(&amp;(objectClass=person)(cn=QUERY))</span>. Results are not rendered — use boolean conditions or a wildcard to learn about entries.</p>
+      <form method="get"><input type="text" name="query" placeholder="query"><button>Search</button></form></div>`;
+    const q = url.searchParams.get('query') || '';
+    if (!q) return { body: page(card) };
+    const injected = /[\*\(\)\|&]/.test(q);
+    return {
+      body: page(card + (injected ? ok('1 entry matched — the wildcard/injection expanded the search (blind LDAP).') : '<p class="muted">0 entries matched.</p>')),
+      solved: injected
+    };
+  }
+};
+
+// ============================================================
+//  XPath injection
+// ============================================================
+const xpath = {
+  // boolean: product filter is an XPath expression
+  async boolean(req, url, ctx) {
+    const card = `<div class="card"><h3>Product lookup</h3>
+      <p class="muted">Query: <span class="mono">//product[name='NAME']</span>. Inject <span class="mono">' or '1'='1</span> to return every product.</p>
+      <form method="get"><input type="text" name="name" placeholder="product name"><button>Look up</button></form></div>`;
+    const name = url.searchParams.get('name') || '';
+    if (!name) return { body: page(card) };
+    const injected = /['"]\s*(or|and)\s*['"]/i.test(name);
+    return {
+      body: page(card + (injected ? ok('All products returned — boolean XPath injection.') : '<p class="muted">No products found for that name.</p>')),
+      solved: injected
+    };
+  },
+  // blind: error-based / out-of-band emulated via a search that reflects the count
+  async blind(req, url, ctx) {
+    const card = `<div class="card"><h3>User lookup</h3>
+      <p class="muted">Query: <span class="mono">//user[username='NAME']</span>. Results are hidden; craft conditions like <span class="mono">' or substring(name[1]/text(),1,1)='a</span> to probe data.</p>
+      <form method="get"><input type="text" name="username" placeholder="username"><button>Search</button></form></div>`;
+    const u = url.searchParams.get('username') || '';
+    if (!u) return { body: page(card) };
+    const injected = /substring|count\(|position\(|['"]\s*(or|and)\s*['"]/i.test(u);
+    return {
+      body: page(card + (injected ? ok('Query evaluated true — blind XPath boolean confirmed.') : '<p class="muted">No match.</p>')),
+      solved: injected
+    };
+  }
+};
+
+// ============================================================
+//  HTTP parameter pollution
+// ============================================================
+const hpp = {
+  // login: proxy appends its own param, backend uses the last duplicate
+  async login(req, url, ctx) {
+    const card = `<div class="card"><h3>Login</h3>
+      <p class="muted">A front-end proxy appends <span class="mono">&amp;username=guest</span> to every request, but the backend reads the <b>last</b> duplicate parameter. Send two <span class="mono">username</span> params: the first passes the guest filter, the second logs you in as admin: <span class="mono">?username=administrator&amp;username=guest</span>.</p>
+      <form method="get"><input type="text" name="username" placeholder="username"><button>Login</button></form></div>`;
+    const all = url.searchParams.getAll('username').map(v => v.toLowerCase());
+    const adminPassed = all.includes('administrator') && all.length > 1;
+    const solved = adminPassed && all[all.length - 1] === 'guest';
+    const role = all[all.length - 1] || '(none)';
+    return {
+      body: page(card + (solved ? ok('Logged in as <b>administrator</b> — the backend read the poisoned duplicate parameter (HPP).') : `<p class="muted">Logging in as: ${h(role)}</p>`)),
+      solved
+    };
+  },
+  // access control: duplicate role param
+  async admin(req, url, ctx) {
+    const card = `<div class="card"><h3>Admin area</h3>
+      <p class="muted">The access-control check reads the <b>first</b> <span class="mono">role</span> parameter; the business logic reads the <b>last</b> one. Send <span class="mono">?role=user&amp;role=admin</span>.</p>
+      <form method="get"><input type="text" name="role" placeholder="role"><button>Go</button></form></div>`;
+    const all = url.searchParams.getAll('role').map(v => v.toLowerCase());
+    const first = all[0] || '';
+    const last = all[all.length - 1] || '';
+    const solved = first !== 'admin' && last === 'admin';
+    return {
+      body: page(card + (solved ? ok('Admin panel loaded — the authorization check missed the second parameter (HPP).') : err('Access denied (role=' + h(first) + ').'))),
+      solved
+    };
+  }
+};
+
+// ============================================================
+//  Server-Side Includes (SSI)
+// ============================================================
+const ssi = {
+  // basic: user input evaluated as SSI
+  async basic(req, url, ctx) {
+    const card = `<div class="card"><h3>Guestbook</h3>
+      <p class="muted">Your entry is embedded into a page served by an SSI-capable server. Try <span class="mono">&lt;!--#exec cmd="whoami" --&gt;</span>.</p>
+      <form method="post"><input type="text" name="entry" placeholder="entry"><button>Submit</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const f = await form(req);
+    const e = f.entry || '';
+    const injected = /<!--\s*#(exec|include|echo)/i.test(e);
+    return {
+      body: page(card + (injected ? ok('SSI directive executed — command output: <span class="mono">www-data</span>.') : '<p class="muted">Entry added.</p>')),
+      solved: injected
+    };
+  },
+  // encoded/filtered: `#` or `<` blocked, bypass with entity/unicode
+  async encoded(req, url, ctx) {
+    const card = `<div class="card"><h3>Guestbook (hardened)</h3>
+      <p class="muted">The server filters <span class="mono">&lt;!--#</span>. Bypass the filter, e.g. split across a comment or use an encoded form so the SSI engine still parses it.</p>
+      <form method="post"><input type="text" name="entry" placeholder="entry"><button>Submit</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const f = await form(req);
+    const e = f.entry || '';
+    const blocked = /<!--\s*#/.test(e);
+    const injected = /<!--[^>]*\s*#\s*(exec|include|echo)/i.test(e) || /<!--\s*-\s*#/i.test(e) || /<!--#\s*exec/i.test(e);
+    const solved = injected && !blocked;
+    return {
+      body: page(card + (blocked ? err('Filtered: SSI prefix detected.') : solved ? ok('SSI directive executed via a filter bypass.') : '<p class="muted">Entry added.</p>')),
+      solved
+    };
+  }
+};
+
+// ============================================================
+//  CSP bypass
+// ============================================================
+const csp = {
+  // unsafe-inline / unsafe-eval allows script execution despite CSP
+  async inline(req, url, ctx) {
+    const q = url.searchParams.get('q') || '';
+    const injected = /<script|javascript:|onerror=|onload=/i.test(q);
+    return {
+      body: page(`<div class="card"><h3>Search</h3>
+        <p class="muted">CSP: <span class="mono">default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'</span>. Reflected value: <b>${q}</b> — inline scripts still run.</p>
+        <form method="get"><input type="text" name="q" placeholder="search"><button>Search</button></form></div>` + (injected ? ok('Inline payload executed despite CSP — the policy allows unsafe-inline.') : '')),
+      solved: injected
+    };
+  },
+  // wildcard / JSONP endpoint allowed, bypass with callback gadget
+  async jsonp(req, url, ctx) {
+    const cb = url.searchParams.get('callback') || '';
+    const injected = cb && /[<>"'`]|javascript:|onerror=/i.test(cb);
+    return {
+      body: page(`<div class="card"><h3>User profile</h3>
+        <p class="muted">CSP allows <span class="mono">script-src 'self' https://cdn.academy.example</span>. The JSONP endpoint <span class="mono">?callback=</span> reflects your value into a script context — abuse it to bypass the allowlist.</p>
+        <p>JSONP callback: <b>${cb || '(none)'}</b></p></div>` + (injected ? ok('Callback reflected into a script context — CSP allowlist bypassed via JSONP gadget.') : '')),
+      solved: injected
+    };
+  }
+};
+
+// ============================================================
+//  DOM clobbering / postMessage
+// ============================================================
+const dom = {
+  // DOM clobbering: attacker-controlled element id shadows a global
+  async clobber(req, url, ctx) {
+    const q = url.searchParams.get('q') || '';
+    const clobbered = /<a\s+id=|name=|<img\s+id=/i.test(q);
+    return {
+      body: page(`<div class="card"><h3>Profile widget</h3>
+        <p class="muted">The page later reads <span class="mono">window.defaultMessage</span> into a <span class="mono">textContent</span> sink. If your input is echoed with a clobbering id/name (e.g. <span class="mono">&lt;a id="defaultMessage"&gt;x&lt;/a&gt;</span>) the global lookup returns your node instead.</p>
+        <p>Reflected: <b>${q}</b></p></div>` + (clobbered ? ok('DOM clobbered — the global lookup returned your element.') : '')),
+      solved: clobbered
+    };
+  },
+  // postMessage listener without origin check
+  async postmsg(req, url, ctx) {
+    const action = url.searchParams.get('action') || '';
+    const from = url.searchParams.get('origin') || '';
+    const sensitive = ['delete', 'changepw', 'logout'].includes(action.toLowerCase());
+    const solved = sensitive && from && from !== url.origin;
+    return {
+      body: page(`<div class="card"><h3>Messenger</h3>
+        <p class="muted">The page listens for <span class="mono">postMessage</span> and never checks <span class="mono">event.origin</span>. Any frame can send <span class="mono">{action:'delete'}</span>. Simulate it: <span class="mono">?action=delete&amp;origin=https://evil.com</span>.</p>
+        <p>action=<b>${h(action) || '(none)'}</b> from=<b>${h(from) || '(none)'}</b></p></div>` + (solved ? ok('Sensitive action accepted from an untrusted origin — missing origin check.') : '')),
+      solved
+    };
+  }
+};
+
+// ============================================================
+//  Subresource Integrity (SRI) missing
+// ============================================================
+const sriLabs = {
+  // script loaded from CDN with no integrity attribute
+  async script(req, url, ctx) {
+    const src = url.searchParams.get('src') || 'https://cdn.academy.example/lib.js';
+    const external = !src.includes('academy.example') && !src.startsWith('/');
+    return {
+      body: page(`<div class="card"><h3>Home</h3>
+        <p class="muted">The page includes a third-party script with <b>no</b> <span class="mono">integrity</span> attribute. Point <span class="mono">?src=</span> at a host you control to subvert the page.</p>
+        <p>Script: <span class="mono">${h(src)}</span> ${external ? '<b>(external, no SRI)</b>' : ''}</p>
+        <script src="${h(src)}"></script></div>` + (external ? ok('External script loaded without an integrity attribute — supply-chain subversion.') : '')),
+      solved: external
+    };
+  }
+};
+
+// ============================================================
+//  CRLF injection
+// ============================================================
+const crlf = {
+  // header injection: unsanitized redirect target
+  async header(req, url, ctx) {
+    const next = url.searchParams.get('next') || '';
+    const raw = next.replace(/%0d|%0D/g, '\r').replace(/%0a|%0A/g, '\n');
+    const injected = /(\r\n|\n\r|\n|\r)\s*[A-Za-z-]+:/.test(raw) && /(Set-Cookie|X-Hacked|Location|Content-Type)/.test(raw);
+    return {
+      status: 302,
+      location: next || '/',
+      body: page(`<div class="card"><h3>Login → continue</h3>
+        <p class="muted">The <span class="mono">next</span> parameter is reflected into the <span class="mono">Location</span> header with no sanitization. Inject a CRLF to add your own headers: <span class="mono">?next=%0d%0aSet-Cookie:%20hacked=1</span>.</p>
+        <p>next=<b>${h(next)}</b></p></div>` + (injected ? ok('Header injected via CRLF — response splitting.') : '')),
+      solved: injected
+    };
+  },
+  // log poisoning: attacker-controlled value written into a log line
+  async log(req, url, ctx) {
+    const ua = req.headers.get('user-agent') || '';
+    const raw = ua.replace(/%0d|%0D/g, '\r').replace(/%0a|%0A/g, '\n');
+    const injected = /(\r\n|\n\r|\n)\s*[A-Za-z-]+:/.test(raw);
+    const card = `<div class="card"><h3>Admin log viewer</h3>
+      <p class="muted">Your <span class="mono">User-Agent</span> is logged unsanitized and the log is later served as a page. Poison it with CRLF + HTML/headers: set <span class="mono">User-Agent: x%0d%0a&lt;script&gt;alert(1)&lt;/script&gt;</span>.</p>
+      <a class="link" href="/lab/crlf-2/log">View log</a></div>`;
+    if (ctx === '/log') {
+      const log = (await store.read('crlf:log', [])) || [];
+      return { body: page(card + `<pre class="mono">${h(log.join('\n') || '(empty)')}</pre>` + (injected ? ok('Log line contains attacker content — log poisoning.') : '')), solved: injected };
+    }
+    const log = (await store.read('crlf:log', [])) || [];
+    log.push(new Date().toISOString() + ' ' + ua);
+    await store.write('crlf:log', log);
+    return { body: page(card + (injected ? ok('Log entry poisoned with CRLF content.') : '<p class="muted">Request logged.</p>')) };
+  }
+};
+
+// ============================================================
+//  Web cache deception
+// ============================================================
+const wcd = {
+  // path extension trick: /account/foo.css cached and served to others
+  async path(req, url, ctx) {
+    const p = ctx || url.pathname;
+    const staticExt = /\.(css|js|png|jpg|jpeg|gif|svg|ico)$/i.test(p);
+    const account = /account|profile|settings/i.test(p);
+    const solved = staticExt && account;
+    return {
+      body: page(`<div class="card"><h3>My Account</h3>
+        <p class="muted">The CDN caches any URL ending in a static extension (e.g. <span class="mono">/lab/wcd-1/my-account/nonexistent.css</span>) and serves it to all users — your account page is now in the cache.</p>
+        <p>Request path: <span class="mono">${h(p)}</span> ${solved ? ok('Account page cached under a static extension — web cache deception.') : ''}</p></div>`),
+      solved
+    };
+  },
+  // X-Original-URL: origin returns static content, backend serves account page
+  async origurl(req, url, ctx) {
+    const xou = req.headers.get('x-original-url') || '';
+    const xrw = req.headers.get('x-rewrite-url') || '';
+    const secret = (xou || xrw || '');
+    const solved = /account|profile|settings|checkout/i.test(secret);
+    return {
+      body: page(`<div class="card"><h3>Static CDN</h3>
+        <p class="muted">Send <span class="mono">X-Original-URL: /my-account</span> (or <span class="mono">X-Rewrite-URL</span>) on a request to a static path — the front-end forwards it and the origin serves the sensitive page, which gets cached.</p>
+        <p>X-Original-URL: <b>${h(xou) || '(none)'}</b></p></div>` + (solved ? ok('Sensitive page served via the rewrite header — cache deception.') : '')),
+      solved
+    };
+  }
+};
+
+// ============================================================
+//  HTTP verb tampering
+// ============================================================
+const verb = {
+  // admin panel only guarded on GET; PUT/DELETE/PATCH bypass
+  async admin(req, url, ctx) {
+    const m = (req.method || '').toUpperCase();
+    const allowed = ['PUT', 'DELETE', 'PATCH', 'POST'].includes(m);
+    return {
+      body: page(`<div class="card"><h3>Admin panel</h3>
+        <p class="muted">Access control is only applied to <span class="mono">GET</span>. Try <span class="mono">PUT /lab/verb-1/admin</span>.</p>
+        <p>Method: <b>${m}</b></p></div>` + (allowed ? ok('Admin panel reached via ' + m + ' — verb tampering bypassed access control.') : err('Access denied (GET requests are checked).'))),
+      solved: allowed
+    };
+  },
+  // password change: CSRF token only enforced on POST; use PUT
+  async changepw(req, url, ctx) {
+    const m = (req.method || '').toUpperCase();
+    const card = `<div class="card"><h3>Change password</h3>
+      <p class="muted">The form enforces a CSRF token on <span class="mono">POST</span> only. Send <span class="mono">PUT</span> with <span class="mono">username&amp;newpassword</span> to change it without a token.</p>
+      <form method="post"><input type="text" name="username" placeholder="username"><input type="password" name="newpassword" placeholder="new password"><button>Change</button></form></div>`;
+    if (req.method === 'GET') return { body: page(card) };
+    const f = await form(req);
+    const bypassed = m === 'PUT' || m === 'DELETE' || m === 'PATCH';
+    const solved = bypassed && (f.username || f.newpassword);
+    return {
+      body: page(card + (solved ? ok('Password changed for ' + h(f.username || '') + ' via ' + m + ' — token check bypassed (verb tampering).') : ok('Password changed.'))),
+      solved
+    };
+  }
+};
+
+// ============================================================
+//  Mass assignment
+// ============================================================
+const mass = {
+  // registration: extra field sets admin flag
+  async register(req, url, ctx) {
+    const card = `<div class="card"><h3>Sign up</h3>
+      <p class="muted">The server binds every submitted field onto the user object. Add <span class="mono">isAdmin=true</span> (or <span class="mono">role=admin</span>) to your registration to escalate.</p>
+      <form method="post"><input type="text" name="username" placeholder="username"><input type="password" name="password" placeholder="password"><input type="hidden" name="isAdmin" value="true"><button>Sign up</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const f = await form(req);
+    const admin = f.isAdmin === 'true' || f.role === 'admin' || f.role === 'administrator';
+    const solved = admin;
+    return {
+      body: page(card + (solved ? ok('Account created with <b>isAdmin=true</b> — mass assignment.') : ok('Account created (user).'))),
+      solved
+    };
+  },
+  // profile update: unlisted role field persisted
+  async update(req, url, ctx) {
+    const card = `<div class="card"><h3>Update profile</h3>
+      <p class="muted">The update endpoint persists every field you send. Submit <span class="mono">role=admin</span> alongside a normal update.</p>
+      <form method="post"><input type="text" name="email" placeholder="email"><input type="hidden" name="role" value="admin"><button>Save</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const f = await form(req);
+    const admin = /admin/i.test(f.role || '');
+    return {
+      body: page(card + (admin ? ok('Profile saved with role=<b>admin</b> — mass assignment privilege escalation.') : ok('Profile saved.'))),
+      solved: admin
+    };
+  }
+};
+
+// ============================================================
+//  Excessive data exposure
+// ============================================================
+const expose = {
+  // API returns the full user object incl. password
+  async api(req, url, ctx) {
+    const card = `<div class="card"><h3>User API</h3>
+      <p class="muted">GET <span class="mono">/lab/expose-1/api/user/1</span> — the response returns the whole record object.</p>
+      <a class="link" href="/lab/expose-1/api/user/1">/api/user/1</a></div>`;
+    if (ctx && ctx.startsWith('/api/user/')) {
+      return {
+        body: JSON.stringify({ id: 1, username: 'carlos', role: 'user', email: 'carlos@academy.example', password: '5f4dcc3b5aa765d61d8327deb882cf99', apiKey: 'ak_3f9a21c4' }),
+        solved: true,
+        contentType: 'application/json'
+      };
+    }
+    return { body: page(card) };
+  },
+  // autocomplete enabled on sensitive fields
+  async autocomplete(req, url, ctx) {
+    const q = url.searchParams.get('q') || '';
+    return {
+      body: page(`<div class="card"><h3>Account settings</h3>
+        <p class="muted">Sensitive inputs (email, CVV, SSN) use <span class="mono">autocomplete="yes"</span> with no server-side <span class="mono">autocomplete="off"</span> — browsers cache them. Check <span class="mono">?debug=1</span> to see the raw form fields.</p>
+        <form><input type="text" name="email" value="carlos@academy.example" autocomplete="on"><input type="text" name="ssn" value="123-45-6789" autocomplete="on"></form>
+        ${q ? '<p class="muted">Reflected: ' + h(q) + '</p>' : ''}</div>` + (q === '1' ? ok('Raw autocomplete fields exposed — excessive data exposure.') : '')),
+      solved: q === '1'
+    };
+  }
+};
+
+// ============================================================
+//  Formula injection (CSV/Excel)
+// ============================================================
+const formula = {
+  // export reflects attacker input as a spreadsheet formula
+  async csv(req, url, ctx) {
+    const card = `<div class="card"><h3>Export to CSV</h3>
+      <p class="muted">Add a product name, then export. If a cell begins with <span class="mono">=</span>, <span class="mono">+</span>, <span class="mono">-</span> or <span class="mono">@</span>, Excel/Sheets will evaluate it as a formula (CSV formula injection).</p>
+      <form method="post"><input type="text" name="name" placeholder="product name"><button>Add</button></form>
+      <a class="link" href="/lab/formula-1/export">Export CSV</a></div>`;
+    const list = (await store.read('formula:rows', [])) || [];
+    if (req.method === 'POST') {
+      const f = await form(req);
+      if (f.name) { list.push(f.name); await store.write('formula:rows', list); }
+    }
+    if (ctx === '/export') {
+      const dangerous = list.some(v => /^[=+\-@]/.test(v));
+      const csv = list.map(v => `"${v.replace(/"/g, '""')}"`).join('\n');
+      return { body: 'Name\r\n' + csv + '\r\n', contentType: 'text/csv', solved: dangerous };
+    }
+    return { body: page(card + (list.length ? '<p class="muted">Products: ' + h(list.join(', ')) + '</p>' : '')) };
+  }
+};
+
+// ============================================================
+//  ReDoS (regex denial of service)
+// ============================================================
+const redos = {
+  // catastrophic backtracking in search filter
+  async search(req, url, ctx) {
+    const q = url.searchParams.get('q') || '';
+    const started = Date.now();
+    const catastrophic = /^a+$/.test(q) || /(a+)+$/.test(q) || /(a|a?)+$/.test(q);
+    const solved = catastrophic && q.length > 8;
+    return {
+      body: page(`<div class="card"><h3>Search</h3>
+        <p class="muted">The filter runs <span class="mono">/(a+)+$/</span> on your input. Feed many <span class="mono">a</span>s followed by a non-matching char to trigger catastrophic backtracking (ReDoS).</p>
+        <form method="get"><input type="text" name="q" placeholder="search"><button>Search</button></form>
+        <p class="muted">processed in ${Date.now() - started}ms</p></div>` + (solved ? ok('Query triggered catastrophic backtracking — ReDoS confirmed.') : '')),
+      solved
+    };
+  }
+};
+
+// ============================================================
+//  DNS rebinding (simulated SSRF)
+// ============================================================
+const rebind = {
+  // first resolution is validated, second resolution used to fetch
+  async ssrf(req, url, ctx) {
+    const stockApi = url.searchParams.get('stockApi') || '';
+    const card = `<div class="card"><h3>Check stock</h3>
+      <p class="muted">The server resolves the hostname <b>once</b> to validate it, then fetches after a re-resolution. Use a rebinding service (e.g. <span class="mono">7f000001.rebind.network</span>) so the first lookup returns a public IP and the second returns 127.0.0.1.</p>
+      <form method="get"><input type="text" name="stockApi" placeholder="http://<rebinding-host>/admin"><button>Check</button></form></div>`;
+    if (!stockApi) return { body: page(card) };
+    const rebinding = /rebind\.network|nip\.io|sslip\.io|xip\.io/i.test(stockApi);
+    const reachAdmin = rebinding && /admin/i.test(stockApi);
+    return {
+      body: page(card + (reachAdmin
+        ? ok('Internal admin reached — DNS rebinding bypassed the validation.') + FAKE_ADMIN
+        : ok('Stock returned: 42 units.'))),
+      solved: reachAdmin
+    };
+  }
+};
+
+// ============================================================
+//  Content-Type confusion / polyglot upload
+// ============================================================
+const ctc = {
+  // polyglot: file passes magic-byte check but executes as code
+  async polyglot(req, url, ctx) {
+    const card = `<div class="card"><h3>Avatar upload</h3>
+      <p class="muted">The server checks the first bytes match an image magic number, but serves the file as the extension says. Craft a <span class="mono">GIF89a</span> (or PNG magic) + <span class="mono">.php</span> polyglot.</p>
+      <form method="post" enctype="multipart/form-data"><input type="file" name="file"><button>Upload</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const body = await req.text();
+    const fn = (body.match(/filename="([^"]+)"/) || [])[1] || '';
+    const magic = /GIF89a|\x89PNG|\xFF\xD8\xFF/.test(body) || body.includes('\x89PNG') || body.includes('GIF89a');
+    const php = /\.php$/i.test(fn);
+    const solved = php && magic;
+    return {
+      body: page(card + (solved ? ok('Polyglot uploaded — passes the magic-byte check yet executes as PHP.') : (php ? err('Magic bytes rejected.') : ok('Avatar uploaded.')))),
+      solved
+    };
+  }
+};
+
+// ============================================================
+//  Security misconfiguration
+// ============================================================
+const misconfig = {
+  // default credentials on an admin console
+  async defaultCreds(req, url, ctx) {
+    const card = `<div class="card"><h3>Admin console</h3>
+      <p class="muted">Left at factory defaults — try <span class="mono">admin</span>/<span class="mono">admin</span> or <span class="mono">admin</span>/<span class="mono">password</span>.</p>
+      <form method="post"><input type="text" name="username" placeholder="username"><input type="password" name="password" placeholder="password"><button>Login</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const f = await form(req);
+    const okDefault = (f.username === 'admin' || f.username === 'administrator') &&
+      (f.password === 'admin' || f.password === 'password' || f.password === '123456' || f.password === 'toor');
+    return {
+      body: page(card + (okDefault ? ok('Logged in to the admin console with default credentials — misconfiguration.') : err('Login failed.'))),
+      solved: okDefault
+    };
+  },
+  // directory listing exposed
+  async dirlist(req, url, ctx) {
+    const card = `<div class="card"><h3>Backup share</h3>
+      <p class="muted">Browse <span class="mono">/lab/misconfig-2/backup/</span> — directory listing is enabled.</p>
+      <a class="link" href="/lab/misconfig-2/backup/">/backup/</a></div>`;
+    if (ctx && /backup|assets|uploads|logs/i.test(ctx)) {
+      const listing = `<pre class="mono">drwxr-xr-x  www-data  backup/
+-rw-r--r--  root      db_dump_2024.sql
+-rw-r--r--  root      app.env.bak
+-rw-r--r--  root      admin_notes.txt</pre>`;
+      return { body: page(card + ok('Directory listing enabled — sensitive files exposed.') + listing), solved: true };
+    }
+    return { body: page(card) };
+  },
+  // verbose errors leak internals
+  async verbose(req, url, ctx) {
+    const id = url.searchParams.get('id') || '';
+    const card = `<div class="card"><h3>Product</h3>
+      <p class="muted">Ask for a non-numeric <span class="mono">?id=</span> — the error handler prints a full stack trace.</p>
+      <form method="get"><input type="text" name="id" placeholder="product id"><button>Go</button></form></div>`;
+    if (id === '') return { body: page(card) };
+    const numeric = /^\d+$/.test(id);
+    if (numeric) return { body: page(card + '<p class="muted">Product ' + h(id) + '.</p>') };
+    const trace = `<pre class="mono">Error: SQLSTATE[HY093]: Invalid parameter number: parameter was not defined
+  at PDOStatement::execute (/app/vendor/db.php:45)
+  at App\\Product::find (/app/src/Product.php:88)
+  at App\\Routes::dispatch (/app/src/Routes.php:122)
+DB_DSN=mysql:host=db:3306;dbname=shop
+DB_USER=root
+DB_PASS=Sup3rS3cret</pre>`;
+    return { body: page(card + ok('Verbose error — stack trace + credentials exposed.') + trace), solved: true };
+  }
+};
+
+// ============================================================
 //  ROUTES
 // ============================================================
 export const extraRoutes = {
@@ -1282,6 +1826,8 @@ export const extraRoutes = {
   'graphql-3': (r, u, c) => graphql.batch(r, u, c),
   'ws-1': (r, u, c) => ws.connect(r, u, c),
   'ws-2': (r, u, c) => ws.send(r, u, c),
+  'ws-3': (r, u, c) => ws.authz(r, u, c),
+  'ws-4': (r, u, c) => ws.owner(r, u, c),
   'redirect-1': (r, u, c) => redirectLabs.open(r, u, c),
   'redirect-2': (r, u, c) => redirectLabs.bypass(r, u, c),
   'jwt-1': (r, u, c) => jwtLabs.noneAlg(r, u, c),
@@ -1291,5 +1837,35 @@ export const extraRoutes = {
   'oauth-2': (r, u, c) => oauthLabs.scope(r, u, c),
   'oauth-3': (r, u, c) => oauthLabs.email(r, u, c),
   'info-1': (r, u, c) => info.debug(r, u, c),
-  'info-2': (r, u, c) => info.source(r, u, c)
+  'info-2': (r, u, c) => info.source(r, u, c),
+  'ldap-1': (r, u, c) => ldap.auth(r, u, c),
+  'ldap-2': (r, u, c) => ldap.blind(r, u, c),
+  'xpath-1': (r, u, c) => xpath.boolean(r, u, c),
+  'xpath-2': (r, u, c) => xpath.blind(r, u, c),
+  'hpp-1': (r, u, c) => hpp.login(r, u, c),
+  'hpp-2': (r, u, c) => hpp.admin(r, u, c),
+  'ssi-1': (r, u, c) => ssi.basic(r, u, c),
+  'ssi-2': (r, u, c) => ssi.encoded(r, u, c),
+  'csp-1': (r, u, c) => csp.inline(r, u, c),
+  'csp-2': (r, u, c) => csp.jsonp(r, u, c),
+  'dom-1': (r, u, c) => dom.clobber(r, u, c),
+  'dom-2': (r, u, c) => dom.postmsg(r, u, c),
+  'sri-1': (r, u, c) => sriLabs.script(r, u, c),
+  'crlf-1': (r, u, c) => crlf.header(r, u, c),
+  'crlf-2': (r, u, c) => crlf.log(r, u, c),
+  'wcd-1': (r, u, c) => wcd.path(r, u, c),
+  'wcd-2': (r, u, c) => wcd.origurl(r, u, c),
+  'verb-1': (r, u, c) => verb.admin(r, u, c),
+  'verb-2': (r, u, c) => verb.changepw(r, u, c),
+  'mass-1': (r, u, c) => mass.register(r, u, c),
+  'mass-2': (r, u, c) => mass.update(r, u, c),
+  'expose-1': (r, u, c) => expose.api(r, u, c),
+  'expose-2': (r, u, c) => expose.autocomplete(r, u, c),
+  'formula-1': (r, u, c) => formula.csv(r, u, c),
+  'redos-1': (r, u, c) => redos.search(r, u, c),
+  'rebind-1': (r, u, c) => rebind.ssrf(r, u, c),
+  'ctc-1': (r, u, c) => ctc.polyglot(r, u, c),
+  'misconfig-1': (r, u, c) => misconfig.defaultCreds(r, u, c),
+  'misconfig-2': (r, u, c) => misconfig.dirlist(r, u, c),
+  'misconfig-3': (r, u, c) => misconfig.verbose(r, u, c)
 };

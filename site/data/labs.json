@@ -255,7 +255,9 @@
       "color": "#006b75",
       "labs": [
         "ws-1",
-        "ws-2"
+        "ws-2",
+        "ws-3",
+        "ws-4"
       ]
     },
     {
@@ -294,6 +296,155 @@
       "labs": [
         "info-1",
         "info-2"
+      ]
+    },
+    {
+      "id": "ldap",
+      "name": "LDAP Injection",
+      "color": "#70e000",
+      "labs": [
+        "ldap-1",
+        "ldap-2"
+      ]
+    },
+    {
+      "id": "xpath",
+      "name": "XPath Injection",
+      "color": "#9a6b00",
+      "labs": [
+        "xpath-1",
+        "xpath-2"
+      ]
+    },
+    {
+      "id": "hpp",
+      "name": "HTTP Parameter Pollution",
+      "color": "#5bc0de",
+      "labs": [
+        "hpp-1",
+        "hpp-2"
+      ]
+    },
+    {
+      "id": "ssi",
+      "name": "Server-Side Includes",
+      "color": "#b39ddb",
+      "labs": [
+        "ssi-1",
+        "ssi-2"
+      ]
+    },
+    {
+      "id": "csp",
+      "name": "CSP Bypass",
+      "color": "#f9a825",
+      "labs": [
+        "csp-1",
+        "csp-2"
+      ]
+    },
+    {
+      "id": "dom",
+      "name": "DOM-Based Vulnerabilities",
+      "color": "#6a1b9a",
+      "labs": [
+        "dom-1",
+        "dom-2"
+      ]
+    },
+    {
+      "id": "sri",
+      "name": "Subresource Integrity",
+      "color": "#00695c",
+      "labs": [
+        "sri-1"
+      ]
+    },
+    {
+      "id": "crlf",
+      "name": "CRLF Injection",
+      "color": "#e57373",
+      "labs": [
+        "crlf-1",
+        "crlf-2"
+      ]
+    },
+    {
+      "id": "wcd",
+      "name": "Web Cache Deception",
+      "color": "#2e7d32",
+      "labs": [
+        "wcd-1",
+        "wcd-2"
+      ]
+    },
+    {
+      "id": "verb",
+      "name": "HTTP Verb Tampering",
+      "color": "#d81b60",
+      "labs": [
+        "verb-1",
+        "verb-2"
+      ]
+    },
+    {
+      "id": "mass",
+      "name": "Mass Assignment",
+      "color": "#1e88e5",
+      "labs": [
+        "mass-1",
+        "mass-2"
+      ]
+    },
+    {
+      "id": "expose",
+      "name": "Excessive Data Exposure",
+      "color": "#f4511e",
+      "labs": [
+        "expose-1",
+        "expose-2"
+      ]
+    },
+    {
+      "id": "formula",
+      "name": "Formula Injection",
+      "color": "#00acc1",
+      "labs": [
+        "formula-1"
+      ]
+    },
+    {
+      "id": "redos",
+      "name": "ReDoS",
+      "color": "#c0ca33",
+      "labs": [
+        "redos-1"
+      ]
+    },
+    {
+      "id": "rebind",
+      "name": "DNS Rebinding",
+      "color": "#5d4037",
+      "labs": [
+        "rebind-1"
+      ]
+    },
+    {
+      "id": "ctc",
+      "name": "Content-Type Confusion",
+      "color": "#7cb342",
+      "labs": [
+        "ctc-1"
+      ]
+    },
+    {
+      "id": "misconfig",
+      "name": "Security Misconfiguration",
+      "color": "#78909c",
+      "labs": [
+        "misconfig-1",
+        "misconfig-2",
+        "misconfig-3"
       ]
     }
   ],
@@ -1596,6 +1747,422 @@
         "Look for debug endpoints, source maps, backups, and verbose responses the app never links to.",
         "Try <code>/lab/info-2/app.js.map</code>, <code>/.git/config</code>, <code>backup.sql</code>, or …",
         "Try <code>/lab/info-2/app.js.map</code>, <code>/.git/config</code>, <code>backup.sql</code>, or <code>?source=1</code>."
+      ]
+    },
+    "ldap-1": {
+      "title": "LDAP injection — auth bypass",
+      "topic": "ldap",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The login builds an LDAP bind filter from your input without escaping. Bypass authentication.",
+      "hint": "Submit a <code>*</code> or break out of the filter, e.g. <code>username=*</code>.",
+      "hints": [
+        "The LDAP filter is <code>(&amp;(uid=USER)(password=PASS))</code> built directly from your input.",
+        "Inject a wildcard or operator such as <code>*</code> or <code>*)(uid=*))(|(uid=*</code>.",
+        "Submit <code>username=*</code> to match the first directory entry."
+      ]
+    },
+    "ldap-2": {
+      "title": "LDAP injection — blind search",
+      "topic": "ldap",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "The staff search returns nothing, but you can confirm conditions with LDAP injection.",
+      "hint": "Use a wildcard or boolean condition in the query, e.g. <code>query=*</code>.",
+      "hints": [
+        "The query is <code>(&amp;(objectClass=person)(cn=QUERY))</code> and results are not rendered.",
+        "Use <code>*</code> to match every entry or inject boolean operators.",
+        "Submit <code>query=*</code> and observe the match count change."
+      ]
+    },
+    "xpath-1": {
+      "title": "XPath injection — boolean",
+      "topic": "xpath",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The product lookup builds an XPath expression from your input. Return every product.",
+      "hint": "Break the string literal: <code>name=' OR '1'='1</code>.",
+      "hints": [
+        "The query is <code>//product[name='NAME']</code>.",
+        "Close the quote and add a tautology.",
+        "Submit <code>name=' OR '1'='1</code>."
+      ]
+    },
+    "xpath-2": {
+      "title": "XPath injection — blind",
+      "topic": "xpath",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "Results are hidden, but you can still probe the XML document with boolean conditions.",
+      "hint": "Craft a condition such as <code>' or substring(name[1]/text(),1,1)='a</code>.",
+      "hints": [
+        "The query is <code>//user[username='NAME']</code> and the outcome is binary.",
+        "Boolean conditions like <code>substring()</code> or <code>count()</code> reveal data.",
+        "Use <code>' or substring(name[1]/text(),1,1)='a</code> to guess characters."
+      ]
+    },
+    "hpp-1": {
+      "title": "HPP — login parameter override",
+      "topic": "hpp",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "A proxy appends its own username parameter, but the backend reads the last duplicate. Log in as admin.",
+      "hint": "Send two <code>username</code> params: <code>?username=administrator&amp;username=guest</code>.",
+      "hints": [
+        "The front-end appends <code>&amp;username=guest</code> to every login request.",
+        "The backend uses the last duplicate parameter for the actual login.",
+        "Send <code>?username=administrator&amp;username=guest</code>."
+      ]
+    },
+    "hpp-2": {
+      "title": "HPP — access control bypass",
+      "topic": "hpp",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "The authorization check reads the first role parameter, but the app uses the last. Reach the admin area.",
+      "hint": "Send <code>?role=user&amp;role=admin</code>.",
+      "hints": [
+        "The access-control check reads the <b>first</b> <code>role</code> parameter.",
+        "The business logic reads the <b>last</b> one.",
+        "Send <code>?role=user&amp;role=admin</code>."
+      ]
+    },
+    "ssi-1": {
+      "title": "SSI — command execution",
+      "topic": "ssi",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "Your guestbook entry is rendered by an SSI-capable server. Execute a command.",
+      "hint": "Submit <code>&lt;!--#exec cmd=\"whoami\" --&gt;</code>.",
+      "hints": [
+        "The server evaluates Server-Side Include directives in your entry.",
+        "Use the <code>exec</code>, <code>include</code> or <code>echo</code> directive.",
+        "Submit <code>&lt;!--#exec cmd=\"whoami\" --&gt;</code>."
+      ]
+    },
+    "ssi-2": {
+      "title": "SSI — filter bypass",
+      "topic": "ssi",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "The server filters the SSI prefix. Bypass the filter to still get execution.",
+      "hint": "Split or encode the directive so the filter misses it but the parser still executes.",
+      "hints": [
+        "The filter blocks the literal <code>&lt;!--#</code> sequence.",
+        "The SSI parser is lenient about whitespace and encoding between markers.",
+        "Try forms such as <code>&lt;!--&nbsp;#exec&nbsp;cmd=\"whoami\" --&gt;</code>."
+      ]
+    },
+    "csp-1": {
+      "title": "CSP bypass — unsafe-inline",
+      "topic": "csp",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "The page reflects your input and a CSP is set — but it allows unsafe-inline, so the XSS still fires.",
+      "hint": "Reflect a script: <code>?q=&lt;script&gt;alert(1)&lt;/script&gt;</code>.",
+      "hints": [
+        "Read the Content-Security-Policy header the page sends.",
+        "A policy with <code>'unsafe-inline'</code> does not block inline scripts.",
+        "Submit <code>?q=&lt;script&gt;alert(1)&lt;/script&gt;</code>."
+      ]
+    },
+    "csp-2": {
+      "title": "CSP bypass — JSONP gadget",
+      "topic": "csp",
+      "difficulty": 3,
+      "type": "client",
+      "objective": "The CSP allows a JSONP endpoint. Abuse its callback parameter to bypass the allowlist.",
+      "hint": "Inject into <code>?callback=</code>, e.g. <code>?callback=alert(1)//</code>.",
+      "hints": [
+        "The policy allows <code>script-src &quot;self&quot; https://cdn.academy.example</code>.",
+        "JSONP endpoints reflect the <code>callback</code> parameter into a script context.",
+        "Inject <code>?callback=alert(1)//</code> into the JSONP endpoint."
+      ]
+    },
+    "dom-1": {
+      "title": "DOM clobbering",
+      "topic": "dom",
+      "difficulty": 3,
+      "type": "client",
+      "objective": "Your input is echoed in a way that can clobber a global the page later reads into a sink.",
+      "hint": "Use a clobbering tag: <code>?q=&lt;a id=\"defaultMessage\"&gt;x&lt;/a&gt;</code>.",
+      "hints": [
+        "The page reads <code>window.defaultMessage</code> into <code>textContent</code>.",
+        "An element with a matching <code>id</code> or <code>name</code> shadows the global.",
+        "Submit <code>?q=&lt;a id=\"defaultMessage\"&gt;x&lt;/a&gt;</code>."
+      ]
+    },
+    "dom-2": {
+      "title": "postMessage — missing origin check",
+      "topic": "dom",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "The page listens for postMessage without checking event.origin. Trigger a sensitive action from another origin.",
+      "hint": "Simulate it: <code>?action=delete&amp;origin=https://evil.com</code>.",
+      "hints": [
+        "The listener handles actions like delete, changepw, logout.",
+        "It never compares <code>event.origin</code> to its own origin.",
+        "Send <code>?action=delete&amp;origin=https://evil.com</code>."
+      ]
+    },
+    "sri-1": {
+      "title": "Missing subresource integrity",
+      "topic": "sri",
+      "difficulty": 2,
+      "type": "client",
+      "objective": "A third-party script is loaded with no integrity attribute. Point it at your own host.",
+      "hint": "Set <code>?src=https://evil.com/x.js</code>.",
+      "hints": [
+        "The script is loaded from a CDN with no <code>integrity</code> attribute.",
+        "Subresource Integrity prevents tampered scripts from loading.",
+        "Set <code>?src=https://evil.com/x.js</code>."
+      ]
+    },
+    "crlf-1": {
+      "title": "CRLF — header injection",
+      "topic": "crlf",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The next parameter is reflected into the Location header. Inject CRLF to add your own headers.",
+      "hint": "Send <code>?next=%0d%0aSet-Cookie:%20hacked=1</code>.",
+      "hints": [
+        "The value is reflected into the <code>Location</code> header with no sanitization.",
+        "CRLF (%0d%0a) terminates the header and lets you add new ones.",
+        "Send <code>?next=%0d%0aSet-Cookie:%20hacked=1</code>."
+      ]
+    },
+    "crlf-2": {
+      "title": "CRLF — log poisoning",
+      "topic": "crlf",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "Your User-Agent is logged unsanitized and the log is served as a page. Poison the log.",
+      "hint": "Send <code>User-Agent: x%0d%0a&lt;script&gt;alert(1)&lt;/script&gt;</code>.",
+      "hints": [
+        "The request User-Agent is written straight into the log.",
+        "The log is later rendered as a web page.",
+        "Poison it with CRLF + HTML: <code>User-Agent: x%0d%0a&lt;script&gt;alert(1)&lt;/script&gt;</code>."
+      ]
+    },
+    "wcd-1": {
+      "title": "Web cache deception — path extension",
+      "topic": "wcd",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "The CDN caches URLs ending in static extensions. Cache your account page and expose it.",
+      "hint": "Request <code>/lab/wcd-1/my-account/nonexistent.css</code>.",
+      "hints": [
+        "The CDN caches any URL ending in a static extension like .css or .js.",
+        "The origin still serves the dynamic account page for those URLs.",
+        "Request <code>/lab/wcd-1/my-account/nonexistent.css</code>."
+      ]
+    },
+    "wcd-2": {
+      "title": "Web cache deception — X-Original-URL",
+      "topic": "wcd",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "The front-end forwards X-Original-URL to the origin. Get the sensitive page cached.",
+      "hint": "Send <code>X-Original-URL: /my-account</code> on a static request.",
+      "hints": [
+        "The origin trusts the <code>X-Original-URL</code> / <code>X-Rewrite-URL</code> header.",
+        "The CDN caches the request by the public path, not the internal one.",
+        "Send <code>X-Original-URL: /my-account</code>."
+      ]
+    },
+    "verb-1": {
+      "title": "Verb tampering — admin panel",
+      "topic": "verb",
+      "difficulty": 1,
+      "type": "server",
+      "objective": "Access control is only enforced on GET. Reach the admin panel with another verb.",
+      "hint": "Send <code>PUT /lab/verb-1/admin</code>.",
+      "hints": [
+        "The access-control check only runs for <code>GET</code> requests.",
+        "Common bypasses: PUT, DELETE, PATCH, POST.",
+        "Send <code>PUT /lab/verb-1/admin</code>."
+      ]
+    },
+    "verb-2": {
+      "title": "Verb tampering — password change",
+      "topic": "verb",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The CSRF token is only enforced on POST. Change a password with PUT instead.",
+      "hint": "Send <code>PUT</code> with <code>username&amp;newpassword</code>.",
+      "hints": [
+        "The token check is applied to <code>POST</code> only.",
+        "The password-change logic accepts other verbs.",
+        "Send <code>PUT</code> with <code>username&amp;newpassword</code>."
+      ]
+    },
+    "mass-1": {
+      "title": "Mass assignment — registration",
+      "topic": "mass",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The registration binds every field you submit. Create an admin account.",
+      "hint": "Add <code>isAdmin=true</code> (or <code>role=admin</code>) to your registration.",
+      "hints": [
+        "The server copies all submitted fields onto the user object.",
+        "Privilege fields like <code>isAdmin</code> or <code>role</code> are accepted.",
+        "Add <code>isAdmin=true</code> to your registration."
+      ]
+    },
+    "mass-2": {
+      "title": "Mass assignment — profile update",
+      "topic": "mass",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The profile update persists every field you send. Escalate your role.",
+      "hint": "Submit <code>role=admin</code> with the update.",
+      "hints": [
+        "The update endpoint writes every field onto the profile record.",
+        "Unlisted fields like <code>role</code> are still persisted.",
+        "Submit <code>role=admin</code>."
+      ]
+    },
+    "expose-1": {
+      "title": "Excessive data exposure — API",
+      "topic": "expose",
+      "difficulty": 1,
+      "type": "server",
+      "objective": "The user API returns the entire record, including secrets. Read another user's data.",
+      "hint": "GET <code>/lab/expose-1/api/user/1</code>.",
+      "hints": [
+        "The API serializes the full user object.",
+        "Look for a REST endpoint like <code>/api/user/:id</code>.",
+        "GET <code>/lab/expose-1/api/user/1</code>."
+      ]
+    },
+    "expose-2": {
+      "title": "Excessive data exposure — autocomplete",
+      "topic": "expose",
+      "difficulty": 1,
+      "type": "client",
+      "objective": "Sensitive inputs are browser-cached because autocomplete is enabled. Reveal the raw fields.",
+      "hint": "Check <code>?debug=1</code>.",
+      "hints": [
+        "Sensitive inputs (email, SSN) use <code>autocomplete=\"on\"</code>.",
+        "There may be a debug view of the raw form fields.",
+        "Check <code>?debug=1</code>."
+      ]
+    },
+    "formula-1": {
+      "title": "Formula injection (CSV injection)",
+      "topic": "formula",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The CSV export reflects product names into cells. Get a spreadsheet to evaluate a formula.",
+      "hint": "Add a product starting with <code>=</code>, <code>+</code>, <code>-</code> or <code>@</code>, then export.",
+      "hints": [
+        "Cells beginning with <code>=</code>, <code>+</code>, <code>-</code> or <code>@</code> are evaluated by Excel/Sheets.",
+        "The export endpoint writes product names straight into cells.",
+        "Add a product named <code>=HYPERLINK(\"http://evil.com\")</code> then export."
+      ]
+    },
+    "redos-1": {
+      "title": "ReDoS — catastrophic backtracking",
+      "topic": "redos",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "The search filter uses a catastrophic regex. Craft input that stalls it.",
+      "hint": "Send many <code>a</code>s followed by a non-matching char: <code>?q=aaaaaaaaaaaaaaaaaaaaaaaaab</code>.",
+      "hints": [
+        "The filter runs <code>/(a+)+$/</code> over your input.",
+        "Many <code>a</code>s then a non-matching character cause exponential backtracking.",
+        "Send <code>?q=aaaaaaaaaaaaaaaaaaaaaaaaab</code>."
+      ]
+    },
+    "rebind-1": {
+      "title": "DNS rebinding (SSRF)",
+      "topic": "rebind",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "The stock check validates a hostname then re-resolves it. Use a rebinding service to reach 127.0.0.1.",
+      "hint": "Use a rebinding domain, e.g. <code>7f000001.rebind.network/admin</code>.",
+      "hints": [
+        "The server resolves the host once to validate, then fetches after a re-resolution.",
+        "Rebinding services serve a public IP on the first lookup and 127.0.0.1 after.",
+        "Use <code>http://7f000001.rebind.network/admin</code>."
+      ]
+    },
+    "ctc-1": {
+      "title": "Content-Type confusion — polyglot",
+      "topic": "ctc",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "The upload checks magic bytes but serves the file by extension. Upload a polyglot that executes.",
+      "hint": "Craft a <code>.php</code> file beginning with GIF/PNG magic bytes.",
+      "hints": [
+        "The server verifies the first bytes match an image magic number.",
+        "The file is served/executed according to its extension.",
+        "Craft a <code>.php</code> file starting with <code>GIF89a</code>."
+      ]
+    },
+    "misconfig-1": {
+      "title": "Misconfig — default credentials",
+      "topic": "misconfig",
+      "difficulty": 1,
+      "type": "server",
+      "objective": "The admin console was left at factory defaults. Log in.",
+      "hint": "Try <code>admin</code>/<code>admin</code> or <code>admin</code>/<code>password</code>.",
+      "hints": [
+        "The console ships with well-known default credentials.",
+        "Common pairs: admin/admin, admin/password, root/toor.",
+        "Try <code>admin</code>/<code>admin</code>."
+      ]
+    },
+    "misconfig-2": {
+      "title": "Misconfig — directory listing",
+      "topic": "misconfig",
+      "difficulty": 1,
+      "type": "server",
+      "objective": "Directory listing is enabled. Browse the backup share and expose sensitive files.",
+      "hint": "Visit <code>/lab/misconfig-2/backup/</code>.",
+      "hints": [
+        "Directory listing reveals the contents of a folder.",
+        "Backup, upload, assets and logs directories often leak.",
+        "Visit <code>/lab/misconfig-2/backup/</code>."
+      ]
+    },
+    "misconfig-3": {
+      "title": "Misconfig — verbose errors",
+      "topic": "misconfig",
+      "difficulty": 1,
+      "type": "server",
+      "objective": "The error handler prints a full stack trace with secrets. Trigger it.",
+      "hint": "Request a non-numeric <code>?id=</code>.",
+      "hints": [
+        "Verbose error pages disclose internals.",
+        "Stack traces often leak DB credentials and file paths.",
+        "Request <code>?id=abc</code>."
+      ]
+    },
+    "ws-3": {
+      "title": "WebSocket — missing authorization",
+      "topic": "ws",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The admin channel handshake never verifies your role. Connect without being an admin.",
+      "hint": "Connect to <code>/lab/ws-3/admin</code> (or <code>?channel=admin</code>) with a plain session cookie.",
+      "hints": [
+        "The handshake checks for a session but not an admin role.",
+        "The admin channel is exposed through the same connection endpoint.",
+        "Connect to <code>/lab/ws-3/admin</code> with a normal cookie."
+      ]
+    },
+    "ws-4": {
+      "title": "WebSocket — action without owner check",
+      "topic": "ws",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The transfer action trusts the from field you send. Execute an action as another user.",
+      "hint": "POST <code>{\"to\":\"victim\",\"amount\":100,\"from\":\"carlos\"}</code>.",
+      "hints": [
+        "The server trusts the <code>from</code> field supplied by the client.",
+        "No ownership or authorization check is applied to the action.",
+        "Send <code>from</code> as another user, e.g. <code>{\"to\":\"victim\",\"amount\":100,\"from\":\"carlos\"}</code>."
       ]
     }
   }
