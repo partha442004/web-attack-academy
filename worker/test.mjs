@@ -142,6 +142,15 @@ await t("redirect-2 bypass", "/lab/redirect-2?url=https://academy.example@evil.c
 // ---------- Information disclosure ----------
 await t("info-1 debug", "/lab/info-1/debug");
 await t("info-2 sourcemap", "/lab/info-2/app.js.map");
+// ---------- Progress API ----------
+{
+  const mk = await worker.fetch(new Request(base + "/api/mark-many", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: ["jwt-1", "oauth-1"] }) }), {});
+  const mkj = await mk.json();
+  console.log(`mark-many bulk      status=${mk.status} marked=${mkj.marked}`);
+  const st = await worker.fetch(new Request(base + "/api/status/jwt-1", { headers: { Cookie: mk.headers.get("Set-Cookie").split(";")[0] } }), {});
+  const stj = await st.json();
+  console.log(`status after bulk   solved=${stj.solved}`);
+}
 
 async function md5(s) {
   return crypto.createHash("md5").update(s).digest("hex");
