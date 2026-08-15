@@ -66,14 +66,32 @@ function sessionIdFrom(req) {
   return hit ? hit.slice('academy_session='.length) : null;
 }
 
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 function newSid() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  // CSPRNG 256-bit token — not predictable from a timestamp
+  return randomHex(32);
+}
+
+function sessionExpiry() {
+  return Date.now() + SESSION_TTL_MS;
 }
 
 async function getSession(id) {
   if (!id) return null;
   let s = await store.read('session:' + id, null);
-  if (!s) { s = { solved: [] }; await store.write('session:' + id, s); }
+  if (!s) { s = { solved: [], exp: sessionExpiry() }; await store.writeTtl('session:' + id, s, SESSION_TTL_MS / 1000); return s; }
+  // Expired session -> drop it (KV TTL removes it server-side; mem fallback checks exp)
+  if (s.exp && Date.now() > s.exp) {
+    await store.del('session:' + id);
+    return null;
+  }
+  // Sliding renewal for active sessions so users aren't logged out mid-work
+  const remaining = s.exp - Date.now();
+  if (remaining < SESSION_TTL_MS / 2) {
+    s.exp = sessionExpiry();
+    await store.writeTtl('session:' + id, s, SESSION_TTL_MS / 1000);
+  }
   return s;
 }
 
@@ -87,6 +105,7 @@ async function accountSolved(username) {
 async function resolveSession(id) {
   if (!id) return { sid: null, user: null, solved: [] };
   const s = await getSession(id);
+  if (!s) return { sid: null, user: null, solved: [] }; // expired/invalid
   if (s.user) return { sid: id, user: s.user, solved: await accountSolved(s.user) };
   return { sid: id, user: null, solved: s.solved || [] };
 }
@@ -97,7 +116,8 @@ async function persistSolved(sid, user, solved) {
   } else {
     const s = await getSession(sid);
     s.solved = solved;
-    await store.write('session:' + sid, s);
+    s.exp = sessionExpiry();
+    await store.writeTtl('session:' + sid, s, SESSION_TTL_MS / 1000);
   }
 }
 
@@ -117,17 +137,82 @@ async function markSolved(req, labId) {
 
 // ---------------- accounts (real user database) ----------------
 // Real accounts are held separately from the fake vulnerable USERS map.
-// Passwords are salted SHA-256 (WebCrypto) — never stored in plaintext.
+// Passwords are hashed with PBKDF2-SHA256 (v2); legacy v1 records stored
+// salted SHA-256 and are transparently upgraded on next successful login.
+
+const PBKDF2_ITER = 100000;   // Workers WebCrypto caps PBKDF2 at 100k iterations
+const MAX_LOGIN_FAILS = 5;    // consecutive failures before lockout
+const LOGIN_LOCKOUT_MS = 5 * 60 * 1000; // 5-minute lockout
 
 async function sha256Hex(input) {
   const data = new TextEncoder().encode(input);
   const buf = await crypto.subtle.digest('SHA-256', data);
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
+async function pbkdf2Hex(password, salt, iterations) {
+  const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), { name: 'PBKDF2', hash: 'SHA-256' }, false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new TextEncoder().encode(salt), iterations, hash: 'SHA-256' }, keyMaterial, 256);
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Constant-time compare: exits only after scanning the whole string so an
+// attacker cannot learn a hash one character at a time from response timing.
+function timingSafeEqualHex(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 function randomHex(bytes) {
   const buf = new Uint8Array(bytes);
   crypto.getRandomValues(buf);
   return [...buf].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function hashPassword(password) {
+  const salt = randomHex(16);
+  const passHash = await pbkdf2Hex(password, salt, PBKDF2_ITER);
+  return { v: 2, salt, iter: PBKDF2_ITER, passHash };
+}
+
+// Returns true if the password matches. v2 uses PBKDF2; v1 (legacy salted
+// SHA-256) is verified and then upgraded in place so no user keeps a weak hash.
+async function verifyPassword(username, acct, password) {
+  if (acct.v === 2) {
+    const hash = await pbkdf2Hex(password, acct.salt, acct.iter || PBKDF2_ITER);
+    return timingSafeEqualHex(hash, acct.passHash);
+  }
+  const hash = await sha256Hex(acct.salt + ':' + password);
+  if (!timingSafeEqualHex(hash, acct.passHash)) return false;
+  const fresh = await hashPassword(password);
+  await store.write('account:' + username, { ...fresh, createdAt: acct.createdAt });
+  return true;
+}
+
+// Brute-force protection: track consecutive failures per username; after
+// MAX_LOGIN_FAILS the account is locked for LOGIN_LOCKOUT_MS.
+async function clientIp(req) {
+  return req.headers.get('CF-Connecting-IP') || (req.headers.get('X-Forwarded-For') || '').split(',')[0].trim() || 'unknown';
+}
+
+async function loginLocked(req, username) {
+  const r = await store.read('loginlock:' + username, null);
+  return r && r.until > Date.now() ? Math.ceil((r.until - Date.now()) / 1000) : 0;
+}
+
+async function recordLoginFail(req, username) {
+  const key = 'loginlock:' + username;
+  const r = await store.read(key, { fails: 0, until: 0 });
+  const fails = (r.fails || 0) + 1;
+  const until = fails >= MAX_LOGIN_FAILS ? Date.now() + LOGIN_LOCKOUT_MS : 0;
+  await store.writeTtl(key, { fails: until ? 0 : fails, until }, LOGIN_LOCKOUT_MS / 1000 + 60);
+  return until;
+}
+
+async function clearLoginFails(username) {
+  await store.del('loginlock:' + username);
 }
 
 function cookieClear() {
@@ -166,7 +251,7 @@ async function bindSession(req, username) {
   const acct = await accountSolved(username);
   for (const id of cur.solved) if (!acct.includes(id)) acct.push(id);
   await store.write('progress:' + username, { solved: acct });
-  await store.write('session:' + sid, { user: username });
+  await store.writeTtl('session:' + sid, { user: username, exp: sessionExpiry() }, SESSION_TTL_MS / 1000);
   return cookieSet(sid);
 }
 
@@ -180,9 +265,8 @@ async function handleRegister(req, cors) {
   }
   const existing = await store.read('account:' + username, null);
   if (existing) return accountError(409, 'Username already taken', cors);
-  const salt = randomHex(16);
-  const passHash = await sha256Hex(salt + ':' + password);
-  await store.write('account:' + username, { salt, passHash, createdAt: Date.now() });
+  const acct = await hashPassword(password);
+  await store.write('account:' + username, { ...acct, createdAt: Date.now() });
   const setCookie = await bindSession(req, username);
   return new Response(JSON.stringify({ ok: true, user: username }), {
     headers: cors({ 'Content-Type': 'application/json', 'Set-Cookie': setCookie })
@@ -192,10 +276,17 @@ async function handleRegister(req, cors) {
 async function handleLogin(req, cors) {
   const { username, password } = await parseCreds(req, new URL(req.url));
   if (!username || !password) return accountError(400, 'Username and password required', cors);
+  const locked = await loginLocked(req, username);
+  if (locked) {
+    return accountError(429, `Too many failed attempts. Try again in ${Math.ceil(locked / 60)} min.`, cors);
+  }
   const acct = await store.read('account:' + username, null);
-  if (!acct) return accountError(401, 'Invalid username or password', cors);
-  const passHash = await sha256Hex(acct.salt + ':' + password);
-  if (passHash !== acct.passHash) return accountError(401, 'Invalid username or password', cors);
+  const ok = acct && await verifyPassword(username, acct, password);
+  if (!ok) {
+    await recordLoginFail(req, username);
+    return accountError(401, 'Invalid username or password', cors);
+  }
+  await clearLoginFails(username);
   const setCookie = await bindSession(req, username);
   const solved = await accountSolved(username);
   return new Response(JSON.stringify({ ok: true, user: username, solved }), {
@@ -229,7 +320,7 @@ async function handleReset(req, cors) {
 
 // ---------------- helpers ----------------
 function cookieSet(sid) {
-  return `academy_session=${sid}; Path=/; HttpOnly; SameSite=None; Secure`;
+  return `academy_session=${sid}; Path=/; Max-Age=${SESSION_TTL_MS / 1000}; HttpOnly; SameSite=None; Secure`;
 }
 function html(body, opts = {}) {
   const title = opts.title || 'Academy';

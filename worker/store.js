@@ -37,6 +37,20 @@ export async function write(key, val) {
   }
 }
 
+// Write with an automatic expiry (seconds). KV removes the key server-side;
+// the in-memory fallback relies on the caller checking an embedded exp field.
+export async function writeTtl(key, val, ttlSeconds) {
+  if (kv) {
+    try {
+      await kv.put(key, JSON.stringify(val), { expirationTtl: ttlSeconds });
+    } catch (e) {
+      /* best effort */
+    }
+  } else {
+    mem.set(key, val);
+  }
+}
+
 export async function del(key) {
   if (kv) {
     try {

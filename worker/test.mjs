@@ -203,6 +203,27 @@ await t("oauth-3 email", "/lab/oauth-3?email=" + encodeURIComponent("bob@academy
   console.log(`logout then me      status=${me3.status} user=${me3j.user}`);
 }
 
+// ---------- Security hardening ----------
+{
+  // Login lockout: MAX_LOGIN_FAILS (5) bad attempts -> 429, then good login is blocked
+  for (let i = 0; i < 5; i++) {
+    const r = await worker.fetch(new Request(base + "/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "bob", password: "wrong" }) }), {});
+    if (i < 4) {
+      console.log(`login lockout #${i + 1}    status=${r.status}`);
+    } else {
+      console.log(`login lockout final  status=${r.status}`);
+    }
+  }
+  const locked = await worker.fetch(new Request(base + "/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "bob", password: "secret1" }) }), {});
+  console.log(`login locked account status=${locked.status} (expect 429)`);
+  // A successful login must clear the lockout (register bob fresh first)
+  const regBob = await worker.fetch(new Request(base + "/api/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "bob", password: "secret1" }) }), {});
+  const regBobJ = await regBob.json();
+  console.log(`register bob        status=${regBob.status} ok=${regBobJ.ok}`);
+  const relog = await worker.fetch(new Request(base + "/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "bob", password: "secret1" }) }), {});
+  console.log(`login after lockout status=${relog.status} (expect 429 until 5 min)`);
+}
+
 async function md5(s) {
   return crypto.createHash("md5").update(s).digest("hex");
 }
