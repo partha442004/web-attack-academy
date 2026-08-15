@@ -1102,6 +1102,19 @@ function checkLogin(u, p) { return u === 'admin' && p === ADMIN_PW; }
 -- backup.sql --
 INSERT INTO users (username, password_md5) VALUES ('admin','5f4dcc3b5aa765d61d8327deb882cf99');</pre>`;
     return { body: page(card + ok('Source map / backup exposed — hardcoded secrets.') + src), solved: true };
+  },
+  // env file left public
+  async env(req, url, ctx) {
+    const card = `<div class="card"><h3>API</h3>
+      <p class="muted">Leftover dotfiles may be public: <span class="mono">/lab/info-3/.env</span>.</p></div>`;
+    if ((ctx || '') === '/.env') {
+      const env = `<pre class="mono">DATABASE_URL=postgres://shop:s3cr3t_pw@db:5432/shop
+API_KEY=sk_live_7f8d2a1c4e5b
+SESSION_SECRET=c0ffee
+ADMIN_EMAIL=admin@academy.example</pre>`;
+      return { body: page(card + ok('.env exposed — database + API secrets leaked.') + env), solved: true };
+    }
+    return { body: page(card) };
   }
 };
 
@@ -1415,6 +1428,18 @@ const csp = {
         <p>JSONP callback: <b>${cb || '(none)'}</b></p></div>` + (injected ? ok('Callback reflected into a script context — CSP allowlist bypassed via JSONP gadget.') : '')),
       solved: injected
     };
+  },
+  // missing base-uri lets a <base href> hijack relative resource loads
+  async base(req, url, ctx) {
+    const q = url.searchParams.get('q') || '';
+    const baseHijack = /<base[^>]*href=/i.test(q);
+    return {
+      body: page(`<div class="card"><h3>Search</h3>
+        <p class="muted">CSP: <span class="mono">default-src 'self'; script-src 'self'</span> — but there is <b>no</b> <span class="mono">base-uri</span>, so a <span class="mono">&lt;base href&gt;</span> you inject redirects every relative script/style fetch to your host.</p>
+        <form method="get"><input type="text" name="q" placeholder="search"><button>Search</button></form>
+        <p>Reflected: <b>${h(q)}</b></p></div>` + (baseHijack ? ok('Base tag hijack — relative resources now resolve against your origin.') : '')),
+      solved: baseHijack
+    };
   }
 };
 
@@ -1462,6 +1487,18 @@ const sriLabs = {
         <p>Script: <span class="mono">${h(src)}</span> ${external ? '<b>(external, no SRI)</b>' : ''}</p>
         <script src="${h(src)}"></script></div>` + (external ? ok('External script loaded without an integrity attribute — supply-chain subversion.') : '')),
       solved: external
+    };
+  },
+  // JSONP callback reflected into a script tag — no SRI, no allowlist
+  async jsonp(req, url, ctx) {
+    const cb = url.searchParams.get('callback') || 'loadStock';
+    const abused = /[()]/.test(cb) && cb !== 'loadStock';
+    return {
+      body: page(`<div class="card"><h3>Stock widget</h3>
+        <p class="muted">The page loads a third-party script via a JSONP endpoint with <b>no</b> integrity hash: <span class="mono">https://stock-api.example.com/quote?callback=${h(cb)}</span>. Override <span class="mono">?callback=</span> with an executable payload.</p>
+        <p>Callback: <b>${h(cb)}</b> ${abused ? '<b>(executable)</b>' : ''}</p>
+        <pre class="mono">&lt;script src="https://stock-api.example.com/quote?callback=${h(cb)}"&gt;&lt;/script&gt;</pre></div>` + (abused ? ok('JSONP callback hijacked — third-party script now runs your payload with no SRI to stop it.') : '')),
+      solved: abused
     };
   }
 };
@@ -1789,6 +1826,185 @@ DB_PASS=Sup3rS3cret</pre>`;
 };
 
 // ============================================================
+//  Insecure Direct Object References (IDOR)
+// ============================================================
+const idor = {
+  // invoice accessible by any id
+  async invoice(req, url, ctx) {
+    const id = url.searchParams.get('id') || '';
+    const card = `<div class="card"><h3>Invoice</h3>
+      <p class="muted">Your invoice is <span class="mono">id=1002</span>. The endpoint trusts any <span class="mono">?id=</span> you supply — try neighbouring ids.</p>
+      <form method="get"><input type="text" name="id" placeholder="invoice id"><button>View</button></form></div>`;
+    if (id === '') return { body: page(card) };
+    const inv = id === '1004'
+      ? '<pre class="mono">Invoice #1004 — ADMIN\nClient: Acme Corp (premium)\nTotal: $9,999.00\nSSN: 123-45-6789</pre>'
+      : id === '1003'
+        ? '<pre class="mono">Invoice #1003 — alice@academy.example\nTotal: $129.00</pre>'
+        : '<pre class="mono">Invoice #' + h(id) + ' — carlos@academy.example\nTotal: $42.00</pre>';
+    const admin = id === '1004';
+    return {
+      body: page(card + (admin ? ok('Admin invoice accessed by guessing the id — IDOR.') : inv)),
+      solved: admin
+    };
+  },
+  // profile returned for any user_id
+  async profile(req, url, ctx) {
+    const uid = url.searchParams.get('user_id') || '';
+    const card = `<div class="card"><h3>Profile</h3>
+      <p class="muted">Your profile is <span class="mono">user_id=1</span>. The endpoint returns any <span class="mono">?user_id=</span> — try <span class="mono">0</span>.</p>
+      <form method="get"><input type="text" name="user_id" placeholder="user id"><button>View</button></form></div>`;
+    if (uid === '') return { body: page(card) };
+    const prof = uid === '0'
+      ? '<pre class="mono">Administrator\nRole: admin\nEmail: root@academy.example\nFlags: ALL</pre>'
+      : uid === '2'
+        ? '<pre class="mono">Carol\nRole: user</pre>'
+        : '<pre class="mono">Bob (user_id=' + h(uid) + ')\nRole: user</pre>';
+    const admin = uid === '0';
+    return {
+      body: page(card + (admin ? ok('Admin profile fetched with user_id=0 — IDOR.') : prof)),
+      solved: admin
+    };
+  }
+};
+
+// ============================================================
+//  SMTP header injection
+// ============================================================
+const smtp = {
+  // email field copied into the To: header with no sanitization
+  async header(req, url, ctx) {
+    const card = `<div class="card"><h3>Contact form</h3>
+      <p class="muted">Your <span class="mono">email</span> is copied into the message <span class="mono">To:</span> header with no sanitization. Inject a CRLF + <span class="mono">Bcc:</span> (or <span class="mono">Cc:</span>) to silently copy yourself.</p>
+      <form method="post"><input type="text" name="email" placeholder="your email"><textarea name="message" placeholder="message"></textarea><button>Send</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const f = await form(req);
+    const email = f.email || '';
+    const raw = email.replace(/%0d|%0D/g, '\r').replace(/%0a|%0A/g, '\n');
+    const injected = /%0d|%0a|\r|\n/i.test(email) && /bcc|cc|to:/i.test(raw);
+    return {
+      body: page(card + (injected ? ok('Header injected — email quietly Bcc\'d to the attacker.') : '<p class="muted">Message sent.</p>')),
+      solved: injected
+    };
+  },
+  // name field copied into the Subject: header with no sanitization
+  async subject(req, url, ctx) {
+    const card = `<div class="card"><h3>Feedback form</h3>
+      <p class="muted">Your <span class="mono">name</span> is placed into the email <span class="mono">Subject:</span> header raw. Inject a CRLF to forge additional headers.</p>
+      <form method="post"><input type="text" name="name" placeholder="your name"><textarea name="feedback" placeholder="feedback"></textarea><button>Submit</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const f = await form(req);
+    const name = f.name || '';
+    const injected = /%0d|%0a|\r|\n/i.test(name);
+    return {
+      body: page(card + (injected ? ok('CRLF injected into the Subject header — SMTP header injection.') : '<p class="muted">Feedback submitted.</p>')),
+      solved: injected
+    };
+  }
+};
+
+// ============================================================
+//  WAF bypass
+// ============================================================
+const waf = {
+  // naive union-select block bypassed via comment / tab
+  async search(req, url, ctx) {
+    const q = url.searchParams.get('q') || '';
+    const card = `<div class="card"><h3>Product search</h3>
+      <p class="muted">A WAF blocks <span class="mono">union select</span>. The filter is a naive regex — try a comment (<span class="mono">union/**/select</span>) or tab (<span class="mono">union\tselect</span>).</p>
+      <form method="get"><input type="text" name="q" placeholder="search"><button>Search</button></form></div>`;
+    if (q === '') return { body: page(card) };
+    const blocked = /union\s+select/i.test(q);
+    const bypassed = /union\s*\/\*\s*\*\s*\/\s*select|union\/\*\*\/select|union[\t]+select/i.test(q);
+    if (blocked && !bypassed) return { body: page(card + err('WAF: malicious input blocked.')) };
+    return {
+      body: page(card + (bypassed ? ok('Query passed the WAF — <span class="mono">' + h(q) + '</span> executed.') : '<p class="muted">No results.</p>')),
+      solved: bypassed
+    };
+  },
+  // naive <script> block bypassed via alternate vector
+  async comment(req, url, ctx) {
+    const q = url.searchParams.get('q') || '';
+    const card = `<div class="card"><h3>Comment preview</h3>
+      <p class="muted">A WAF blocks the literal <span class="mono">&lt;script</span>. The filter is naive — try <span class="mono">&lt;svg onload=</span>, <span class="mono">&lt;img onerror=</span> or a <span class="mono">javascript:</span> scheme.</p>
+      <form method="get"><input type="text" name="q" placeholder="comment"><button>Preview</button></form></div>`;
+    if (q === '') return { body: page(card) };
+    const plainScript = /<script/i.test(q);
+    const altVector = /<svg[^>]*onload=|<img[^>]*onerror=|javascript:/i.test(q);
+    if (plainScript) return { body: page(card + err('WAF: <span class="mono">&lt;script</span> blocked.')) };
+    return {
+      body: page(card + (altVector ? ok('WAF bypassed — alternate vector rendered.') : '<p class="muted">Comment: ' + h(q) + '</p>')),
+      solved: altVector
+    };
+  }
+};
+
+// ============================================================
+//  Multi-factor authentication bypass
+// ============================================================
+const mfa = {
+  // 2FA step skippable — dashboard reachable directly
+  async verify(req, url, ctx) {
+    const card = `<div class="card"><h3>Login → 2FA</h3>
+      <p class="muted">Enter the code sent to your phone. Is the dashboard actually protected server-side?</p>
+      <form method="post"><input type="text" name="code" placeholder="6-digit code"><button>Verify</button></form>
+      <a class="link" href="/lab/mfa-1/dashboard">Go straight to dashboard</a></div>`;
+    if (ctx === '/dashboard') {
+      return {
+        body: page(card + ok('Dashboard reached with no 2FA step — the server never enforced it.') + '<pre class="mono">Account: administrator\nOTP_required: false</pre>'),
+        solved: true
+      };
+    }
+    if (req.method !== 'POST') return { body: page(card) };
+    const f = await form(req);
+    const code = f.code || '';
+    const okCode = code === '123456';
+    return {
+      body: page(card + (okCode ? ok('Verified.') : err('Invalid code.'))),
+      solved: false
+    };
+  },
+  // predictable OTP
+  async otp(req, url, ctx) {
+    const card = `<div class="card"><h3>2FA</h3>
+      <p class="muted">The one-time code is generated with a predictable algorithm — try <span class="mono">123456</span>.</p>
+      <form method="post"><input type="text" name="code" placeholder="6-digit code"><button>Verify</button></form></div>`;
+    if (req.method !== 'POST') return { body: page(card) };
+    const f = await form(req);
+    const code = f.code || '';
+    const okCode = code === '123456';
+    return {
+      body: page(card + (okCode ? ok('Logged in — the OTP was predictable.') : err('Invalid code.'))),
+      solved: okCode
+    };
+  }
+};
+
+// ============================================================
+//  Stored XSS (comments rendered unsanitized)
+// ============================================================
+const xssExtra = {
+  async stored(req, url, ctx) {
+    const card = `<div class="card"><h3>Comments</h3>
+      <p class="muted">Comments are stored and rendered with no escaping. Post one containing <span class="mono">&lt;script&gt;</span>, <span class="mono">&lt;img onerror=</span> or <span class="mono">&lt;svg onload=</span>.</p>
+      <form method="post"><input type="text" name="author" placeholder="author"><textarea name="comment" placeholder="comment"></textarea><button>Post</button></form></div>`;
+    const list = await store.read('xss8:comments', []);
+    if (req.method === 'POST') {
+      const f = await form(req);
+      list.unshift({ author: f.author || 'anon', comment: f.comment || '' });
+      await store.write('xss8:comments', list);
+    }
+    const malicious = list.some(c => /<script|<img[^>]*onerror|<svg[^>]*onload/i.test(c.comment));
+    const items = list.length
+      ? list.map(c => `<li><b>${h(c.author)}:</b> ${c.comment}</li>`).join('')
+      : '<li class="muted">No comments yet.</li>';
+    return {
+      body: page(card + '<ul style="list-style:none;padding:0">' + items + '</ul>' + (malicious ? ok('Stored XSS — unsanitized comment rendered in every viewer\'s browser.') : '')),
+      solved: malicious
+    };
+  }
+};
+
+// ============================================================
 //  ROUTES
 // ============================================================
 export const extraRoutes = {
@@ -1855,6 +2071,7 @@ export const extraRoutes = {
   'oauth-3': (r, u, c) => oauthLabs.email(r, u, c),
   'info-1': (r, u, c) => info.debug(r, u, c),
   'info-2': (r, u, c) => info.source(r, u, c),
+  'info-3': (r, u, c) => info.env(r, u, c),
   'ldap-1': (r, u, c) => ldap.auth(r, u, c),
   'ldap-2': (r, u, c) => ldap.blind(r, u, c),
   'xpath-1': (r, u, c) => xpath.boolean(r, u, c),
@@ -1865,9 +2082,11 @@ export const extraRoutes = {
   'ssi-2': (r, u, c) => ssi.encoded(r, u, c),
   'csp-1': (r, u, c) => csp.inline(r, u, c),
   'csp-2': (r, u, c) => csp.jsonp(r, u, c),
+  'csp-3': (r, u, c) => csp.base(r, u, c),
   'dom-1': (r, u, c) => dom.clobber(r, u, c),
   'dom-2': (r, u, c) => dom.postmsg(r, u, c),
   'sri-1': (r, u, c) => sriLabs.script(r, u, c),
+  'sri-2': (r, u, c) => sriLabs.jsonp(r, u, c),
   'crlf-1': (r, u, c) => crlf.header(r, u, c),
   'crlf-2': (r, u, c) => crlf.log(r, u, c),
   'wcd-1': (r, u, c) => wcd.path(r, u, c),
@@ -1885,5 +2104,14 @@ export const extraRoutes = {
   'ctc-1': (r, u, c) => ctc.polyglot(r, u, c),
   'misconfig-1': (r, u, c) => misconfig.defaultCreds(r, u, c),
   'misconfig-2': (r, u, c) => misconfig.dirlist(r, u, c),
-  'misconfig-3': (r, u, c) => misconfig.verbose(r, u, c)
+  'misconfig-3': (r, u, c) => misconfig.verbose(r, u, c),
+  'idor-1': (r, u, c) => idor.invoice(r, u, c),
+  'idor-2': (r, u, c) => idor.profile(r, u, c),
+  'smtp-1': (r, u, c) => smtp.header(r, u, c),
+  'smtp-2': (r, u, c) => smtp.subject(r, u, c),
+  'waf-1': (r, u, c) => waf.search(r, u, c),
+  'waf-2': (r, u, c) => waf.comment(r, u, c),
+  'mfa-1': (r, u, c) => mfa.verify(r, u, c),
+  'mfa-2': (r, u, c) => mfa.otp(r, u, c),
+  'xss-8': (r, u, c) => xssExtra.stored(r, u, c)
 };

